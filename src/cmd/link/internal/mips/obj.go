@@ -88,5 +88,15 @@ func archinit(ctxt *ld.Link) {
 		if *ld.FlagRound == -1 {
 			*ld.FlagRound = 0x10000
 		}
+	case objabi.Hnoos:
+		*ld.FlagD = true
+		ld.Elfinit(ctxt)
+		ld.HEADR = ld.ELFRESERVE
+		if *ld.FlagTextAddr == -1 {
+			*ld.FlagTextAddr = 0
+		}
+		if *ld.FlagRound == -1 {
+			*ld.FlagRound = 8
+		}
 	}
 }

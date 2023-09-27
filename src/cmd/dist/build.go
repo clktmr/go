@@ -1630,6 +1630,7 @@ var cgoEnabled = map[string]bool{
 	"windows/arm64":   true,
 	"noos/thumb":      false,
 	"noos/riscv64":    false,
+	"noos/mips":       false,
 }
 
 // List of platforms which are supported but not complete yet. These get

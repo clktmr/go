@@ -6,7 +6,9 @@ package runtime
 
 import "unsafe"
 
-const iscgo = false
+var iscgo bool
+
+func init() { iscgo = false }
 
 var (
 	_cgo_thread_start             unsafe.Pointer
@@ -29,4 +31,3 @@ func cgoCheckWriteBarrier(dst *uintptr, src uintptr)               {}
 func cgocall(fn unsafe.Pointer, arg unsafe.Pointer) int32          { return 0 }
 
 func cgoCheckMemmove(typ *_type, dst unsafe.Pointer, src unsafe.Pointer, off uintptr, size uintptr) {}
-
