@@ -39,7 +39,36 @@ import (
 	"debug/elf"
 )
 
-func gentext(ctxt *ld.Link, ldr *loader.Loader) {}
+func lookupFuncSym(ldr *loader.Loader, name string) loader.Sym {
+	if s := ldr.Lookup(name, sym.SymVerABI0); s != 0 && ldr.SymType(s) == sym.STEXT {
+		return s
+	}
+	if s := ldr.Lookup(name, sym.SymVerABIInternal); s != 0 && ldr.SymType(s) == sym.STEXT {
+		return s
+	}
+	return 0
+}
+
+func gentext(ctxt *ld.Link, ldr *loader.Loader) {
+	if ctxt.HeadType != objabi.Hnoos {
+		return
+	}
+
+	// TODO support interrupt vector table
+
+	entry := lookupFuncSym(ldr, *ld.FlagEntrySymbol)
+	if entry == 0 {
+		ld.Errorf(nil, "cannot find entry function: %s", *ld.FlagEntrySymbol)
+	}
+	for i, s := range ctxt.Textp {
+		if s == entry {
+			copy(ctxt.Textp[1:], ctxt.Textp[:i])
+			ctxt.Textp[0] = s
+			return
+		}
+	}
+	ldr.Errorf(entry, "cannot find symbol in ctxt.Textp")
+}
 
 func elfreloc1(ctxt *ld.Link, out *ld.OutBuf, ldr *loader.Loader, s loader.Sym, r loader.ExtReloc, ri int, sectoff int64) bool {
 
