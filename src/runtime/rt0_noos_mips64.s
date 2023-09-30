@@ -8,7 +8,7 @@
 #include "textflag.h"
 
 
-TEXT _rt0_mips_noos(SB),NOSPLIT|NOFRAME,$0
+TEXT _rt0_mips64_noos(SB),NOSPLIT|NOFRAME,$0
 	// TODO implement
 	RET
 

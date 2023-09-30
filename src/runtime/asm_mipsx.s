@@ -11,8 +11,6 @@
 
 #define	REGCTXT	R22
 
-#ifndef GOOS_noos
-
 TEXT runtime·rt0_go(SB),NOSPLIT|TOPFRAME,$0
 	// R29 = stack; R4 = argc; R5 = argv
 
@@ -76,8 +74,6 @@ nocgo:
 
 	UNDEF
 	RET
-
-#endif
 
 DATA	runtime·mainPC+0(SB)/4,$runtime·main(SB)
 GLOBL	runtime·mainPC(SB),RODATA,$4
