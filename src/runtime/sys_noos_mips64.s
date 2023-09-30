@@ -10,29 +10,29 @@
 // if you add new syscall you must check sysMaxArgs in tasker_noos_*.s
 
 // syscalls allowed for low priority interrupt handlers
-DATA runtime·syscalls+(SYS_nanotime*4)(SB)/4, $·sysnanotime(SB)
-DATA runtime·syscalls+(SYS_irqctl*4)(SB)/4, $·sysirqctl(SB)
-DATA runtime·syscalls+(SYS_setprivlevel*4)(SB)/4, $·syssetprivlevel(SB)
-DATA runtime·syscalls+(SYS_write*4)(SB)/4, $·syswrite(SB)
-DATA runtime·syscalls+(SYS_cachemaint*4)(SB)/4, $·syscachemaint(SB)
+DATA runtime·syscalls+(SYS_nanotime*8)(SB)/8, $·sysnanotime(SB)
+DATA runtime·syscalls+(SYS_irqctl*8)(SB)/8, $·sysirqctl(SB)
+DATA runtime·syscalls+(SYS_setprivlevel*8)(SB)/8, $·syssetprivlevel(SB)
+DATA runtime·syscalls+(SYS_write*8)(SB)/8, $·syswrite(SB)
+DATA runtime·syscalls+(SYS_cachemaint*8)(SB)/8, $·syscachemaint(SB)
 
 // syscalls disallowed for low priority interrupt handlers
-DATA runtime·syscalls+(SYS_setsystim1*4)(SB)/4, $·syssetsystim1(SB)
-DATA runtime·syscalls+(SYS_setsyswriter1*4)(SB)/4, $·syssetsyswriter1(SB)
-DATA runtime·syscalls+(SYS_newosproc*4)(SB)/4, $·sysnewosproc(SB)
-DATA runtime·syscalls+(SYS_exitThread*4)(SB)/4, $·sysexitThread(SB)
-DATA runtime·syscalls+(SYS_futexsleep*4)(SB)/4, $·sysfutexsleep(SB)
-DATA runtime·syscalls+(SYS_futexwakeup*4)(SB)/4, $·sysfutexwakeup(SB)
-DATA runtime·syscalls+(SYS_osyield*4)(SB)/4, $·curcpuSchedule(SB)
-DATA runtime·syscalls+(SYS_nanosleep*4)(SB)/4, $·sysnanosleep(SB)
-DATA runtime·syscalls+(SYS_reset*4)(SB)/4, $·sysreset(SB)
+DATA runtime·syscalls+(SYS_setsystim1*8)(SB)/8, $·syssetsystim1(SB)
+DATA runtime·syscalls+(SYS_setsyswriter1*8)(SB)/8, $·syssetsyswriter1(SB)
+DATA runtime·syscalls+(SYS_newosproc*8)(SB)/8, $·sysnewosproc(SB)
+DATA runtime·syscalls+(SYS_exitThread*8)(SB)/8, $·sysexitThread(SB)
+DATA runtime·syscalls+(SYS_futexsleep*8)(SB)/8, $·sysfutexsleep(SB)
+DATA runtime·syscalls+(SYS_futexwakeup*8)(SB)/8, $·sysfutexwakeup(SB)
+DATA runtime·syscalls+(SYS_osyield*8)(SB)/8, $·curcpuSchedule(SB)
+DATA runtime·syscalls+(SYS_nanosleep*8)(SB)/8, $·sysnanosleep(SB)
+DATA runtime·syscalls+(SYS_reset*8)(SB)/8, $·sysreset(SB)
 
-GLOBL runtime·syscalls(SB), RODATA, $(SYS_NUM*4)
+GLOBL runtime·syscalls(SB), RODATA, $(SYS_NUM*8)
 
 // func nanotime() int64
 TEXT ·nanotime(SB),NOSPLIT|NOFRAME,$0-8
 	MOVW  $SYS_nanotime, R4
-	MOVW  $(0+4), R5
+	MOVW  $(0+8), R5
 	MOVW  $8, R6
 	SYSCALL
 	RET
@@ -40,7 +40,7 @@ TEXT ·nanotime(SB),NOSPLIT|NOFRAME,$0-8
 // func irqctl(irq, ctl, ctxid int) (enabled, prio, errno int)
 TEXT ·irqctl(SB),NOSPLIT|NOFRAME,$0-24
 	MOVW  $SYS_irqctl, R4
-	MOVW  $(12+4), R5
+	MOVW  $(12+8), R5
 	MOVW  $12, R6
 	SYSCALL
 	RET
@@ -48,7 +48,7 @@ TEXT ·irqctl(SB),NOSPLIT|NOFRAME,$0-24
 // func setprivlevel(newlevel int) (oldlevel, errno int)
 TEXT ·setprivlevel(SB),NOSPLIT|NOFRAME,$0-12
 	MOVW  $SYS_setprivlevel, R4
-	MOVW  $(4+4), R5
+	MOVW  $(4+8), R5
 	MOVW  $8, R6
 	SYSCALL
 	RET
@@ -56,7 +56,7 @@ TEXT ·setprivlevel(SB),NOSPLIT|NOFRAME,$0-12
 // func write(fd uintptr, p unsafe.Pointer, n int32) int32
 TEXT ·write(SB),NOSPLIT|NOFRAME,$0-16
 	MOVW  $SYS_write, R4
-	MOVW  $(12+4), R5
+	MOVW  $(12+8), R5
 	MOVW  $4, R6
 	SYSCALL
 	RET
@@ -64,7 +64,7 @@ TEXT ·write(SB),NOSPLIT|NOFRAME,$0-16
 // func cachemaint(op int, p unsafe.Pointer, size int)
 TEXT ·cachemaint(SB),NOSPLIT|NOFRAME,$0-12
 	MOVW  $SYS_cachemaint, R4
-	MOVW  $(12+4), R5
+	MOVW  $(12+8), R5
 	MOVW  $0, R6
 	SYSCALL
 	RET
@@ -72,7 +72,7 @@ TEXT ·cachemaint(SB),NOSPLIT|NOFRAME,$0-12
 // func setsystim1()
 TEXT ·setsystim1(SB),NOSPLIT|NOFRAME,$0-0
 	MOVW  $SYS_setsystim1, R4
-	MOVW  $(0+4), R5
+	MOVW  $(0+8), R5
 	MOVW  $0, R6
 	SYSCALL
 	RET
@@ -81,7 +81,7 @@ TEXT ·setsystim1(SB),NOSPLIT|NOFRAME,$0-0
 // func setsyswriter1()
 TEXT ·setsyswriter1(SB),NOSPLIT|NOFRAME,$0-0
 	MOVW  $SYS_setsyswriter1, R4
-	MOVW  $(0+4), R5
+	MOVW  $(0+8), R5
 	MOVW  $0, R6
 	SYSCALL
 	RET
@@ -90,7 +90,7 @@ TEXT ·setsyswriter1(SB),NOSPLIT|NOFRAME,$0-0
 // func newosproc(mp *m)
 TEXT ·newosproc(SB),NOSPLIT|NOFRAME,$0-4
 	MOVW  $SYS_newosproc, R4
-	MOVW  $(4+4), R5
+	MOVW  $(4+8), R5
 	MOVW  $0, R6
 	SYSCALL
 	RET
@@ -98,7 +98,7 @@ TEXT ·newosproc(SB),NOSPLIT|NOFRAME,$0-4
 // func exitThread(wait *atomic.Uint32)
 TEXT ·exitThread(SB),NOSPLIT|NOFRAME,$0-4
 	MOVW  $SYS_exitThread, R4
-	MOVW  $(4+4), R5
+	MOVW  $(4+8), R5
 	MOVW  $0, R6
 	SYSCALL
 	RET
@@ -106,7 +106,7 @@ TEXT ·exitThread(SB),NOSPLIT|NOFRAME,$0-4
 // func futexsleep(addr *uint32, val uint32, ns int64)
 TEXT ·futexsleep(SB),NOSPLIT|NOFRAME,$0-16
 	MOVW  $SYS_futexsleep, R4
-	MOVW  $(16+4), R5
+	MOVW  $(16+8), R5
 	MOVW  $0, R6
 	SYSCALL
 	RET
@@ -114,7 +114,7 @@ TEXT ·futexsleep(SB),NOSPLIT|NOFRAME,$0-16
 // func futexwakeup(addr *uint32, cnt uint32)
 TEXT ·futexwakeup(SB),NOSPLIT|NOFRAME,$0-8
 	MOVW  $SYS_futexwakeup, R4
-	MOVW  $(8+4), R5
+	MOVW  $(8+8), R5
 	MOVW  $0, R6
 	SYSCALL
 	RET
@@ -122,7 +122,7 @@ TEXT ·futexwakeup(SB),NOSPLIT|NOFRAME,$0-8
 // func osyield()
 TEXT ·osyield(SB),NOSPLIT|NOFRAME,$0-0
 	MOVW  $SYS_osyield, R4
-	MOVW  $(0+4), R5
+	MOVW  $(0+8), R5
 	MOVW  $0, R6
 	SYSCALL
 	RET
@@ -130,7 +130,7 @@ TEXT ·osyield(SB),NOSPLIT|NOFRAME,$0-0
 // func nanosleep(ns int64)
 TEXT ·nanosleep(SB),NOSPLIT|NOFRAME,$0-8
 	MOVW  $SYS_nanosleep, R4
-	MOVW  $(8+4), R5
+	MOVW  $(8+8), R5
 	MOVW  $0, R6
 	SYSCALL
 	RET
@@ -138,7 +138,7 @@ TEXT ·nanosleep(SB),NOSPLIT|NOFRAME,$0-8
 // func reset(level int, addr unsafe.Pointer) bool
 TEXT ·reset(SB),NOSPLIT|NOFRAME,$0-8
 	MOVW  $SYS_reset, R4
-	MOVW  $(8+4), R5
+	MOVW  $(8+8), R5
 	MOVW  $0, R6
 	SYSCALL
 	RET
