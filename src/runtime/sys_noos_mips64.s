@@ -31,115 +31,115 @@ GLOBL runtime·syscalls(SB), RODATA, $(SYS_NUM*8)
 
 // func nanotime() int64
 TEXT ·nanotime(SB),NOSPLIT|NOFRAME,$0-8
-	MOVW  $SYS_nanotime, R8
-	MOVW  $(0+8), R9
-	MOVW  $8, R10
+	MOVV  $SYS_nanotime, R8
+	MOVV  $(0+8), R9
+	MOVV  $8, R10
 	SYSCALL
 	RET
 
 // func irqctl(irq, ctl, ctxid int) (enabled, prio, errno int)
 TEXT ·irqctl(SB),NOSPLIT|NOFRAME,$0-48
-	MOVW  $SYS_irqctl, R8
-	MOVW  $(24+8), R9
-	MOVW  $24, R10
+	MOVV  $SYS_irqctl, R8
+	MOVV  $(24+8), R9
+	MOVV  $24, R10
 	SYSCALL
 	RET
 
 // func setprivlevel(newlevel int) (oldlevel, errno int)
 TEXT ·setprivlevel(SB),NOSPLIT|NOFRAME,$0-24
-	MOVW  $SYS_setprivlevel, R8
-	MOVW  $(8+8), R9
-	MOVW  $16, R10
+	MOVV  $SYS_setprivlevel, R8
+	MOVV  $(8+8), R9
+	MOVV  $16, R10
 	SYSCALL
 	RET
 
 // func write(fd uintptr, p unsafe.Pointer, n int32) int32
 TEXT ·write(SB),NOSPLIT|NOFRAME,$0-32
-	MOVW  $SYS_write, R8
-	MOVW  $(24+8), R9
-	MOVW  $8, R10
+	MOVV  $SYS_write, R8
+	MOVV  $(24+8), R9
+	MOVV  $8, R10
 	SYSCALL
 	RET
 
 // func cachemaint(op int, p unsafe.Pointer, size int)
 TEXT ·cachemaint(SB),NOSPLIT|NOFRAME,$0-24
-	MOVW  $SYS_cachemaint, R8
-	MOVW  $(24+8), R9
-	MOVW  $0, R10
+	MOVV  $SYS_cachemaint, R8
+	MOVV  $(24+8), R9
+	MOVV  $0, R10
 	SYSCALL
 	RET
 
 // func setsystim1()
 TEXT ·setsystim1(SB),NOSPLIT|NOFRAME,$0-0
-	MOVW  $SYS_setsystim1, R8
-	MOVW  $(0+8), R9
-	MOVW  $0, R10
+	MOVV  $SYS_setsystim1, R8
+	MOVV  $(0+8), R9
+	MOVV  $0, R10
 	SYSCALL
 	RET
 
 
 // func setsyswriter1()
 TEXT ·setsyswriter1(SB),NOSPLIT|NOFRAME,$0-0
-	MOVW  $SYS_setsyswriter1, R8
-	MOVW  $(0+8), R9
-	MOVW  $0, R10
+	MOVV  $SYS_setsyswriter1, R8
+	MOVV  $(0+8), R9
+	MOVV  $0, R10
 	SYSCALL
 	RET
 
 
 // func newosproc(mp *m)
 TEXT ·newosproc(SB),NOSPLIT|NOFRAME,$0-8
-	MOVW  $SYS_newosproc, R8
-	MOVW  $(8+8), R9
-	MOVW  $0, R10
+	MOVV  $SYS_newosproc, R8
+	MOVV  $(8+8), R9
+	MOVV  $0, R10
 	SYSCALL
 	RET
 
 // func exitThread(wait *atomic.Uint32)
 TEXT ·exitThread(SB),NOSPLIT|NOFRAME,$0-8
-	MOVW  $SYS_exitThread, R8
-	MOVW  $(8+8), R9
-	MOVW  $0, R10
+	MOVV  $SYS_exitThread, R8
+	MOVV  $(8+8), R9
+	MOVV  $0, R10
 	SYSCALL
 	RET
 
 // func futexsleep(addr *uint32, val uint32, ns int64)
 TEXT ·futexsleep(SB),NOSPLIT|NOFRAME,$0-24
-	MOVW  $SYS_futexsleep, R8
-	MOVW  $(24+8), R9
-	MOVW  $0, R10
+	MOVV  $SYS_futexsleep, R8
+	MOVV  $(24+8), R9
+	MOVV  $0, R10
 	SYSCALL
 	RET
 
 // func futexwakeup(addr *uint32, cnt uint32)
 TEXT ·futexwakeup(SB),NOSPLIT|NOFRAME,$0-16
-	MOVW  $SYS_futexwakeup, R8
-	MOVW  $(16+8), R9
-	MOVW  $0, R10
+	MOVV  $SYS_futexwakeup, R8
+	MOVV  $(16+8), R9
+	MOVV  $0, R10
 	SYSCALL
 	RET
 
 // func osyield()
 TEXT ·osyield(SB),NOSPLIT|NOFRAME,$0-0
-	MOVW  $SYS_osyield, R8
-	MOVW  $(0+8), R9
-	MOVW  $0, R10
+	MOVV  $SYS_osyield, R8
+	MOVV  $(0+8), R9
+	MOVV  $0, R10
 	SYSCALL
 	RET
 
 // func nanosleep(ns int64)
 TEXT ·nanosleep(SB),NOSPLIT|NOFRAME,$0-8
-	MOVW  $SYS_nanosleep, R8
-	MOVW  $(8+8), R9
-	MOVW  $0, R10
+	MOVV  $SYS_nanosleep, R8
+	MOVV  $(8+8), R9
+	MOVV  $0, R10
 	SYSCALL
 	RET
 
 // func reset(level int, addr unsafe.Pointer) bool
 TEXT ·reset(SB),NOSPLIT|NOFRAME,$0-16
-	MOVW  $SYS_reset, R8
-	MOVW  $(16+8), R9
-	MOVW  $0, R10
+	MOVV  $SYS_reset, R8
+	MOVV  $(16+8), R9
+	MOVV  $0, R10
 	SYSCALL
 	RET
 
