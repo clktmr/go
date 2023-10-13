@@ -95,7 +95,9 @@ continue:
 
 	// call the service routine
 	MOVV  $·syscalls(SB), R26
-	MOVV  (R26)(R8*8), R26
+	SLL   $3, R8
+	ADD   R8, R26
+	MOVV  (R26), R26
 	JAL   (R26)
 
 	// copy the return values back to the caller's stack
