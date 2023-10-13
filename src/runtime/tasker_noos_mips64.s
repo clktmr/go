@@ -61,19 +61,55 @@ syscall:
 	// R8 - syscall number,
 	// R9 - argument data size on the stack (+8 for frame-pointer),
 	// R10 - return data size on the stack.
+	//
+	// Now that we know we are in a syscall, we are free to use any
+	// registers.  The caller should expect them to be clobbered after a
+	// function call.
 
-	SUB $sysMaxArgs, R29
+	// determine caller stack
+	MOVV  _mepc(R29), R26
+	AND   $1, R26, R27  // fromHandler flag
+	BNE   R27, R0, currentStack
 
-	// TODO copy arguments from caller's stack
+	MOVV  (g_sched+gobuf_sp)(g), R1 // duffcopy src thread
+	JMP   continue
+
+currentStack:
+	ADD   $excCtxSize, R29, R1 // duffcopy src handler
+
+continue:
+	// 3 extra registers to preserve src, dst and size of result
+	SUB   $sysMaxArgs+3*8, R29
+
+	// copy arguments from the caller's stack
+	MOVV   $·duffcopy<ABIInternal>+2048(SB), R26
+	SLL    $1, R9
+	SUB    R9, R26
+	MOVV   R29, R2 // duffcopy dst
+	JAL    (R26)
+
+	// save data needed to copy the return values back to the caller's stack
+	MOVV   R1, (sysMaxArgs+0*8)(R29)
+	MOVV   R2, (sysMaxArgs+1*8)(R29)
+	MOVV   R10, (sysMaxArgs+2*8)(R29)
 
 	// call the service routine
 	MOVV  $·syscalls(SB), R26
 	MOVV  (R26)(R8*8), R26
-	//JAL   (R26)
+	JAL   (R26)
 
-	// TODO copy the return values back to the caller's stack
+	// copy the return values back to the caller's stack
+	MOVV  (sysMaxArgs+2*8)(R29), R10
+	BEQ   R0, R10, nothingToCopy
+	MOVV  (sysMaxArgs+0*8)(R29), R2 // duffcopy dst
+	MOVV  (sysMaxArgs+1*8)(R29), R1 // duffcopy src
+	MOVV  $·duffcopy<ABIInternal>+2048(SB), R26
+	SLL   $1, R10
+	SUB   R10, R26
+	JAL   (R26)
 
-	ADD $sysMaxArgs, R29
+nothingToCopy:
+	ADD $sysMaxArgs+3*8, R29
 
 	JMP  restore
 
