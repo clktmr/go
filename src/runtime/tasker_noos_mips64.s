@@ -192,6 +192,7 @@ interrupt:
 	MOVV  (cpuctx_exe)(g), R27
 
 	MOVV  _LR(R29), R26
+	AND   $~1, R26  // remove smallCtx flag from ra
 	MOVV  R26, (m_mOS+mOS_ra)(R27)
 
 	MOVV  _mepc(R29), R26
