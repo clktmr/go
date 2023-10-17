@@ -858,7 +858,9 @@ func (f funcInfo) entry() uintptr {
 // implementation.
 //
 //go:nosplit
-func findfunc(pc uintptr) funcInfo {
+func findfunc(pcse uintptr) funcInfo {
+	pc := uintptr(uint32(pcse))
+
 	datap := findmoduledatap(pc)
 	if datap == nil {
 		return funcInfo{}
@@ -908,7 +910,9 @@ func pcvalueCacheKey(targetpc uintptr) uintptr {
 
 // Returns the PCData value, and the PC where this value starts.
 // TODO: the start PC is returned only when cache is nil.
-func pcvalue(f funcInfo, off uint32, targetpc uintptr, cache *pcvalueCache, strict bool) (int32, uintptr) {
+func pcvalue(f funcInfo, off uint32, targetpcse uintptr, cache *pcvalueCache, strict bool) (int32, uintptr) {
+	targetpc := uintptr(uint32(targetpcse))
+
 	if off == 0 {
 		return -1, 0
 	}
