@@ -183,7 +183,8 @@ TEXT runtime·rt0_go(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
 	// estimate the space need for non-heap allocations
 	SRL   $(const__PageShift+2), t5, t4
 	MOVV  $mspan__size, t2
-	MUL   t2, t4, t4
+	MUL   t2, t4
+	MOVV  LO, t4
 	ADD   $PALLOC_MIN, t4
 
 	MOVV  $runtime·nodmastart(SB), t2
