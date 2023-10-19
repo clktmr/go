@@ -55,7 +55,7 @@ set_sp:
 	// of ROM to RAM, and __libdragon_text_start is located right after the
 	// ROM header where this 1 MiB starts.
 	MOVW $_rt0_mips64_noos(SB), a0
-	MOVW $runtime·end(SB), a1 // TODO correct symbol?
+	MOVW $runtime·edata(SB), a1
 	MOVW $0x100000, t0 // stock IPL3 load size (1 MiB)
 	SUBU a0, a1, a2	// calculate data size
 	SUB  t0, a2, a2 // calculate remaining data size
