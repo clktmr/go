@@ -197,7 +197,7 @@ func resolveNameOff(ptrInModule unsafe.Pointer, off nameOff) name {
 	if off == 0 {
 		return name{}
 	}
-	base := uintptr(ptrInModule)
+	base := uintptr(uint32(uintptr(ptrInModule)))
 	for md := &firstmoduledata; md != nil; md = md.next {
 		if base >= md.types && base < md.etypes {
 			res := md.types + uintptr(off)
@@ -233,7 +233,7 @@ func resolveTypeOff(ptrInModule unsafe.Pointer, off typeOff) *_type {
 		// See cmd/link/internal/ld/data.go:relocsym.
 		return nil
 	}
-	base := uintptr(ptrInModule)
+	base := uintptr(uint32(uintptr(ptrInModule)))
 	var md *moduledata
 	for next := &firstmoduledata; next != nil; next = next.next {
 		if base >= next.types && base < next.etypes {
