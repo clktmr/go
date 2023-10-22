@@ -275,7 +275,7 @@ func (t *_type) textOff(off textOff) unsafe.Pointer {
 		// See cmd/link/internal/ld/data.go:relocsym.
 		return unsafe.Pointer(abi.FuncPCABIInternal(unreachableMethod))
 	}
-	base := uintptr(unsafe.Pointer(t))
+	base := uintptr(uint32(uintptr(unsafe.Pointer(t))))
 	var md *moduledata
 	for next := &firstmoduledata; next != nil; next = next.next {
 		if base >= next.types && base < next.etypes {
