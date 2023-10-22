@@ -40,6 +40,8 @@ TEXT runtime·intvector(SB),NOSPLIT|NOFRAME,$0
 //
 // Called from handler:
 // same, but skip 1, 2, 4
+// TODO save more cregs in context?
+// TODO save FPRS in context
 TEXT runtime·inthandler(SB),NOSPLIT|NOFRAME,$0
 start:
 	// determine caller stack
@@ -143,7 +145,7 @@ duffcopy:
 	MOVV   R2, (sysMaxArgs+1*8)(R29)
 	MOVV   R10, (sysMaxArgs+2*8)(R29)
 
-	// reenable interrupts
+	// reenable exceptions
 	MOVV  M(C0_SR), R26
 	AND   $~SR_EXL, R26
 	MOVV  R26, M(C0_SR)
@@ -157,7 +159,7 @@ duffcopy:
 	MOVV  (R9), R9
 	JAL   (R9)
 
-	// disable interrupts again
+	// disable exceptions again
 	MOVV  M(C0_SR), R8
 	OR    $SR_EXL, R8
 	MOVV  R8, M(C0_SR)
@@ -181,8 +183,7 @@ nothingToCopy:
 	JMP   enterScheduler
 
 // An interrupt was caused by timer, software or externally.  This can happen on
-// any instruction.  We need to save all GPRs in our context.  However we know
-// that our stack is on ISR, otherwise we have a bug.
+// any instruction.  We need to save all GPRs in our context.
 interrupt:
 	MOVV  (cpuctx_exe)(g), R26
 	MOVV  $(m_mOS+mOS_gprs)(R26), R26
@@ -273,7 +274,7 @@ enterScheduler:
 	MOVB  R0, cpuctx_schedule(g)
 	JAL   ·curcpuRunScheduler(SB)
 
-	// disable interrupts again
+	// disable exceptions again
 	MOVV  M(C0_SR), R8
 	OR    $SR_EXL, R8
 	MOVV  R8, M(C0_SR)

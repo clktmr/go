@@ -86,6 +86,7 @@ skip_dma:
 	JAL  runtime·memclrNoHeapPointers(SB)  // clear BSS
 
 	// fill .noptrbss with 0s
+	// TODO check if this works, framebuffer wasn't black
 	MOVW $runtime·noptrbss(SB), a0
 	OR   $0x20000000, a0 // convert address to KSEG1 (uncached)
 	MOVW $runtime·enoptrbss(SB), a1
