@@ -33,8 +33,6 @@ var (
 //go:nowritebarrierrec
 //go:nosplit
 func taskerinit() {
-	iscgo = false // TODO should be a const
-
 	*(*uintptr)(unsafe.Pointer(&cpu0.t)) = uintptr(unsafe.Pointer(&thetasker))
 	cpu0.exe.set(getg().m)
 	allcpu := (*slice)(unsafe.Pointer(&thetasker.allcpu))

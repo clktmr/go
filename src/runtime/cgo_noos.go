@@ -6,9 +6,7 @@ package runtime
 
 import "unsafe"
 
-var iscgo bool
-
-func init() { iscgo = false }
+const iscgo bool = false
 
 var (
 	_cgo_thread_start             unsafe.Pointer
