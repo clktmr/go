@@ -2647,56 +2647,63 @@ func (ctxt *Link) address() []*sym.Segment {
 
 	Segtext.Length = va - uint64(*FlagTextAddr)
 
-	if len(Segrodata.Sections) > 0 {
-		// align to page boundary so as not to mix
-		// rodata and executable text.
-		//
-		// Note: gold or GNU ld will reduce the size of the executable
-		// file by arranging for the relro segment to end at a page
-		// boundary, and overlap the end of the text segment with the
-		// start of the relro segment in the file.  The PT_LOAD segments
-		// will be such that the last page of the text segment will be
-		// mapped twice, once r-x and once starting out rw- and, after
-		// relocation processing, changed to r--.
-		//
-		// Ideally the last page of the text segment would not be
-		// writable even for this short period.
-		va = uint64(Rnd(int64(va), int64(*FlagRound)))
+	addressRodata := func(offset uint64) {
+		va += offset
+		if len(Segrodata.Sections) > 0 {
+			// align to page boundary so as not to mix
+			// rodata and executable text.
+			//
+			// Note: gold or GNU ld will reduce the size of the executable
+			// file by arranging for the relro segment to end at a page
+			// boundary, and overlap the end of the text segment with the
+			// start of the relro segment in the file.  The PT_LOAD segments
+			// will be such that the last page of the text segment will be
+			// mapped twice, once r-x and once starting out rw- and, after
+			// relocation processing, changed to r--.
+			//
+			// Ideally the last page of the text segment would not be
+			// writable even for this short period.
+			va = uint64(Rnd(int64(va), int64(*FlagRound)))
 
-		order = append(order, &Segrodata)
-		Segrodata.Rwx = 04
-		Segrodata.Vaddr = va
-		Segrodata.Laddr = va
-		for _, s := range Segrodata.Sections {
-			va = uint64(Rnd(int64(va), int64(s.Align)))
-			s.Vaddr = va
-			s.Laddr = va
-			va += s.Length
+			order = append(order, &Segrodata)
+			Segrodata.Rwx = 04
+			Segrodata.Vaddr = va
+			Segrodata.Laddr = va - offset
+			for _, s := range Segrodata.Sections {
+				va = uint64(Rnd(int64(va), int64(s.Align)))
+				s.Vaddr = va
+				s.Laddr = va - offset
+				va += s.Length
+			}
+
+			Segrodata.Length = va - Segrodata.Vaddr
 		}
+		if len(Segrelrodata.Sections) > 0 {
+			// align to page boundary so as not to mix
+			// rodata, rel-ro data, and executable text.
+			va = uint64(Rnd(int64(va), int64(*FlagRound)))
+			if ctxt.HeadType == objabi.Haix {
+				// Relro data are inside data segment on AIX.
+				va += uint64(XCOFFDATABASE) - uint64(XCOFFTEXTBASE)
+			}
 
-		Segrodata.Length = va - Segrodata.Vaddr
+			order = append(order, &Segrelrodata)
+			Segrelrodata.Rwx = 06
+			Segrelrodata.Vaddr = va
+			Segrelrodata.Laddr = va - offset
+			for _, s := range Segrelrodata.Sections {
+				va = uint64(Rnd(int64(va), int64(s.Align)))
+				s.Vaddr = va
+				s.Laddr = va - offset
+				va += s.Length
+			}
+
+			Segrelrodata.Length = va - Segrelrodata.Vaddr
+		}
 	}
-	if len(Segrelrodata.Sections) > 0 {
-		// align to page boundary so as not to mix
-		// rodata, rel-ro data, and executable text.
-		va = uint64(Rnd(int64(va), int64(*FlagRound)))
-		if ctxt.HeadType == objabi.Haix {
-			// Relro data are inside data segment on AIX.
-			va += uint64(XCOFFDATABASE) - uint64(XCOFFTEXTBASE)
-		}
 
-		order = append(order, &Segrelrodata)
-		Segrelrodata.Rwx = 06
-		Segrelrodata.Vaddr = va
-		Segrelrodata.Laddr = va
-		for _, s := range Segrelrodata.Sections {
-			va = uint64(Rnd(int64(va), int64(s.Align)))
-			s.Vaddr = va
-			s.Laddr = va
-			va += s.Length
-		}
-
-		Segrelrodata.Length = va - Segrelrodata.Vaddr
+	if ctxt.HeadType != objabi.Hnoos {
+		addressRodata(0)
 	}
 
 	va = uint64(Rnd(int64(va), int64(*FlagRound)))
@@ -2763,6 +2770,10 @@ func (ctxt *Link) address() []*sym.Segment {
 	// Assign Segdata's Filelen omitting the BSS. We do this here
 	// simply because right now we know where the BSS starts.
 	Segdata.Filelen = bss.Vaddr - Segdata.Vaddr
+
+	if ctxt.HeadType == objabi.Hnoos {
+		addressRodata(0x1000_0c00)
+	}
 
 	va = uint64(Rnd(int64(la), int64(*FlagRound)))
 	order = append(order, &Segdwarf)

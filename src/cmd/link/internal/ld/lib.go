@@ -2489,6 +2489,10 @@ func datoff(ldr *loader.Loader, s loader.Sym, addr int64) int64 {
 		// noos: text and data segments can be in arbitrary order
 		return int64(uint64(addr) - Segtext.Vaddr + Segtext.Fileoff)
 	}
+	if uint64(addr) >= Segrodata.Vaddr {
+		// noos: allow rodata after data
+		return int64(uint64(addr) - Segrodata.Vaddr + Segrodata.Fileoff)
+	}
 	if uint64(addr) >= Segdata.Vaddr {
 		return int64(uint64(addr) - Segdata.Vaddr + Segdata.Fileoff)
 	}
