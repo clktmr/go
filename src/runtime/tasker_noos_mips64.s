@@ -304,17 +304,16 @@ TEXT runtime·enterScheduler(SB),NOSPLIT|NOFRAME,$0
 	// clear cpuctx.newexe
 	MOVB  R0, (cpuctx_newexe)(g)
 
-skipScheduler:
 	MOVV  (cpuctx_exe)(g), R27
 	MOVV  (m_mOS+mOS_ra)(R27), R9
 	AND   $~1, R9, R23 // remove smallCtx flag
 	SUB   $8, R29
 	MOVV  R23, 0(R29)
 	AND   $1, R9, R10  // smallCtx flag
-	BNE   R0, R10, smallCtx
+	BNE   R0, R10, smallCtx  // TODO should never happen
 
 	MOVV  $(m_mOS+mOS_gprs)(R27), R26
-	JAL   ·restoreGPRs(SB)
+	JAL   ·restoreGPRs(SB) // TODO skip if we are coming from syscall
 
 smallCtx:
 	// unmask interrupts
@@ -335,8 +334,8 @@ smallCtx:
 
 TEXT runtime·externalInterruptHandler(SB),NOSPLIT|NOFRAME,$0
 	// External interrupt can happen anytime, save full context.  Context
-	// will be saved on the stack, because nested interrupts need to be
-	// supported, e.g. to wake up another goroutine from the user handler.
+	// will be saved on the stack, to allow nested interrupts be supported.
+	// TODO nested interrupts aren't enabled as of now.  Do we need them?
 	// Keep in mind that the scheduler must not be called if context is
 	// saved on the stack.
 	SUB   $const_numGPRS*8, R29
