@@ -223,8 +223,8 @@ TEXT runtime·rt0_go(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
 	// allocate g0 for m0 and leave gh
 
 	SUB   $16, sp
-	MOVV  $(2*const__StackMin), a0
-	MOVV  a0, 4(sp)
+	MOVW  $(2*const__StackMin), a0
+	MOVW  a0, 8(sp)
 	JAL   runtime·malg(SB)
 	MOVV  16(sp), t0  // newg in t0
 	ADD   $16, sp
