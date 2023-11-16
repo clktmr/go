@@ -556,11 +556,11 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		// SC	Rtmp, (Rarg0)
 		// BEQ	Rtmp, -3(PC)
 		// SYNC
-		ll := mips.AMOVV
-		sc := mips.AMOVV
+		ll := mips.ALLV
+		sc := mips.ASCV
 		if v.Op == ssa.OpMIPS64LoweredAtomicExchange32 {
-			ll = mips.AMOVW
-			sc = mips.AMOVW
+			ll = mips.ALL
+			sc = mips.ASC
 		}
 		s.Prog(mips.ASYNC)
 		p := s.Prog(mips.AMOVV)
@@ -578,11 +578,11 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p2.From.Reg = mips.REGTMP
 		p2.To.Type = obj.TYPE_MEM
 		p2.To.Reg = v.Args[0].Reg()
-		p3 := s.Prog(ll)
-		p3.From.Type = obj.TYPE_CONST
-		p3.From.Offset = 1
-		p3.To.Type = obj.TYPE_REG
-		p3.To.Reg = mips.REGTMP
+		p3 := s.Prog(mips.ABEQ)
+		p3.From.Type = obj.TYPE_REG
+		p3.From.Reg = mips.REGTMP
+		p3.To.Type = obj.TYPE_BRANCH
+		p3.To.SetTarget(p)
 		s.Prog(mips.ASYNC)
 	case ssa.OpMIPS64LoweredAtomicAdd32, ssa.OpMIPS64LoweredAtomicAdd64:
 		// SYNC
@@ -592,11 +592,11 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		// BEQ	Rtmp, -3(PC)
 		// SYNC
 		// ADDV Rarg1, Rout
-		ll := mips.AMOVV
-		sc := mips.AMOVV
+		ll := mips.ALLV
+		sc := mips.ASCV
 		if v.Op == ssa.OpMIPS64LoweredAtomicAdd32 {
-			ll = mips.AMOVW
-			sc = mips.AMOVW
+			ll = mips.ALL
+			sc = mips.ASC
 		}
 		s.Prog(mips.ASYNC)
 		p := s.Prog(ll)
@@ -615,11 +615,11 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p2.From.Reg = mips.REGTMP
 		p2.To.Type = obj.TYPE_MEM
 		p2.To.Reg = v.Args[0].Reg()
-		p3 := s.Prog(ll)
-		p3.From.Type = obj.TYPE_CONST
-		p3.From.Offset = 1
-		p3.To.Type = obj.TYPE_REG
-		p3.To.Reg = mips.REGTMP
+		p3 := s.Prog(mips.ABEQ)
+		p3.From.Type = obj.TYPE_REG
+		p3.From.Reg = mips.REGTMP
+		p3.To.Type = obj.TYPE_BRANCH
+		p3.To.SetTarget(p)
 		s.Prog(mips.ASYNC)
 		p4 := s.Prog(mips.AADDVU)
 		p4.From.Type = obj.TYPE_REG
@@ -635,11 +635,11 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		// BEQ	Rtmp, -3(PC)
 		// SYNC
 		// ADDV $auxint, Rout
-		ll := mips.AMOVV
-		sc := mips.AMOVV
+		ll := mips.ALLV
+		sc := mips.ASCV
 		if v.Op == ssa.OpMIPS64LoweredAtomicAddconst32 {
-			ll = mips.AMOVW
-			sc = mips.AMOVW
+			ll = mips.ALL
+			sc = mips.ASC
 		}
 		s.Prog(mips.ASYNC)
 		p := s.Prog(ll)
@@ -658,11 +658,11 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p2.From.Reg = mips.REGTMP
 		p2.To.Type = obj.TYPE_MEM
 		p2.To.Reg = v.Args[0].Reg()
-		p3 := s.Prog(ll)
-		p3.From.Type = obj.TYPE_CONST
-		p3.From.Offset = 1
-		p3.To.Type = obj.TYPE_REG
-		p3.To.Reg = mips.REGTMP
+		p3 := s.Prog(mips.ABEQ)
+		p3.From.Type = obj.TYPE_REG
+		p3.From.Reg = mips.REGTMP
+		p3.To.Type = obj.TYPE_BRANCH
+		p3.To.SetTarget(p)
 		s.Prog(mips.ASYNC)
 		p4 := s.Prog(mips.AADDVU)
 		p4.From.Type = obj.TYPE_CONST
@@ -679,11 +679,11 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		// SC	Rout, (Rarg0)
 		// BEQ	Rout, -4(PC)
 		// SYNC
-		ll := mips.AMOVV
-		sc := mips.AMOVV
+		ll := mips.ALLV
+		sc := mips.ASCV
 		if v.Op == ssa.OpMIPS64LoweredAtomicCas32 {
-			ll = mips.AMOVW
-			sc = mips.AMOVW
+			ll = mips.ALL
+			sc = mips.ASC
 		}
 		p := s.Prog(mips.AMOVV)
 		p.From.Type = obj.TYPE_REG
@@ -711,11 +711,11 @@ func ssaGenValue(s *ssagen.State, v *ssa.Value) {
 		p4.From.Reg = v.Reg0()
 		p4.To.Type = obj.TYPE_MEM
 		p4.To.Reg = v.Args[0].Reg()
-		p5 := s.Prog(ll)
-		p5.From.Type = obj.TYPE_CONST
-		p5.From.Offset = 1
-		p5.To.Type = obj.TYPE_REG
-		p5.To.Reg = v.Reg0()
+		p5 := s.Prog(mips.ABEQ)
+		p5.From.Type = obj.TYPE_REG
+		p5.From.Reg = v.Reg0()
+		p5.To.Type = obj.TYPE_BRANCH
+		p5.To.SetTarget(p1)
 		p6 := s.Prog(mips.ASYNC)
 		p2.To.SetTarget(p6)
 	case ssa.OpMIPS64LoweredNilCheck:

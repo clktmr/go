@@ -22,10 +22,10 @@ TEXT ·Cas(SB), NOSPLIT, $0-17
 	SYNC
 cas_again:
 	MOVV	R5, R3
-	MOVW	(R1), R4
+	LL	(R1), R4
 	BNE	R2, R4, cas_fail
-	MOVW	R3, (R1)
-	MOVV	$1, R3
+	SC	R3, (R1)
+	BEQ	R3, cas_again
 	MOVV	$1, R1
 	MOVB	R1, ret+16(FP)
 	SYNC
@@ -49,10 +49,10 @@ TEXT ·Cas64(SB), NOSPLIT, $0-25
 	SYNC
 cas64_again:
 	MOVV	R5, R3
-	MOVV	(R1), R4
+	LLV	(R1), R4
 	BNE	R2, R4, cas64_fail
-	MOVV	R3, (R1)
-	MOVV	$1, R3
+	SCV	R3, (R1)
+	BEQ	R3, cas64_again
 	MOVV	$1, R1
 	MOVB	R1, ret+24(FP)
 	SYNC
@@ -121,11 +121,11 @@ TEXT ·Xadd(SB), NOSPLIT, $0-20
 	MOVV	ptr+0(FP), R2
 	MOVW	delta+8(FP), R3
 	SYNC
-	MOVW	(R2), R1
+	LL	(R2), R1
 	ADDU	R1, R3, R4
 	MOVV	R4, R1
-	MOVW	R4, (R2)
-	MOVV	$1, R4
+	SC	R4, (R2)
+	BEQ	R4, -4(PC)
 	MOVW	R1, ret+16(FP)
 	SYNC
 	RET
@@ -138,11 +138,11 @@ TEXT ·Xadd64(SB), NOSPLIT, $0-24
 	MOVV	ptr+0(FP), R2
 	MOVV	delta+8(FP), R3
 	SYNC
-	MOVV	(R2), R1
+	LLV	(R2), R1
 	ADDVU	R1, R3, R4
 	MOVV	R4, R1
-	MOVV	R4, (R2)
-	MOVV	$1, R4
+	SCV	R4, (R2)
+	BEQ	R4, -4(PC)
 	MOVV	R1, ret+16(FP)
 	SYNC
 	RET
@@ -158,9 +158,9 @@ TEXT ·Xchg(SB), NOSPLIT, $0-20
 
 	SYNC
 	MOVV	R5, R3
-	MOVW	(R2), R1
-	MOVW	R3, (R2)
-	MOVV	$1, R3
+	LL	(R2), R1
+	SC	R3, (R2)
+	BEQ	R3, -3(PC)
 	MOVW	R1, ret+16(FP)
 	SYNC
 	RET
@@ -176,9 +176,9 @@ TEXT ·Xchg64(SB), NOSPLIT, $0-24
 
 	SYNC
 	MOVV	R5, R3
-	MOVV	(R2), R1
-	MOVV	R3, (R2)
-	MOVV	$1, R3
+	LLV	(R2), R1
+	SCV	R3, (R2)
+	BEQ	R3, -3(PC)
 	MOVV	R1, ret+16(FP)
 	SYNC
 	RET
@@ -247,10 +247,10 @@ TEXT ·Or8(SB), NOSPLIT, $0-9
 	SLLV	R4, R2
 
 	SYNC
-	MOVW	(R3), R4
+	LL	(R3), R4
 	OR	R2, R4
-	MOVW	R4, (R3)
-	MOVV	$1, R4
+	SC	R4, (R3)
+	BEQ	R4, -4(PC)
 	SYNC
 	RET
 
@@ -277,10 +277,10 @@ TEXT ·And8(SB), NOSPLIT, $0-9
 	OR	R5, R2
 
 	SYNC
-	MOVW	(R3), R4
+	LL	(R3), R4
 	AND	R2, R4
-	MOVW	R4, (R3)
-	MOVV	$1, R4
+	SC	R4, (R3)
+	BEQ	R4, -4(PC)
 	SYNC
 	RET
 
@@ -290,10 +290,10 @@ TEXT ·Or(SB), NOSPLIT, $0-12
 	MOVW	val+8(FP), R2
 
 	SYNC
-	MOVW	(R1), R3
+	LL	(R1), R3
 	OR	R2, R3
-	MOVW	R3, (R1)
-	MOVV	$1, R3
+	SC	R3, (R1)
+	BEQ	R3, -4(PC)
 	SYNC
 	RET
 
@@ -303,10 +303,10 @@ TEXT ·And(SB), NOSPLIT, $0-12
 	MOVW	val+8(FP), R2
 
 	SYNC
-	MOVW	(R1), R3
+	LL	(R1), R3
 	AND	R2, R3
-	MOVW	R3, (R1)
-	MOVV	$1, R3
+	SC	R3, (R1)
+	BEQ	R3, -4(PC)
 	SYNC
 	RET
 
