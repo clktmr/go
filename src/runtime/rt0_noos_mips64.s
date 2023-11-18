@@ -143,14 +143,8 @@ loadintvectorloop:
 	ADDU $-1, t2
 	BGTZ t2,loadintvectorloop
 
-#ifdef FOOBAR
-	la t0, debug_assert_func // install assert function in system.c
-	la t1, __assert_func_ptr
-	sw t0, 0(t1)	
+	JAL ·initEverdrive64USB(SB) // get ready for logging
 
-	jal __do_global_ctors // call global constructors
-	nop
-#endif
 	JMP runtime·rt0_go(SB)
 
 
