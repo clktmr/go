@@ -214,7 +214,7 @@ TEXT runtime·rt0_tlb(SB),NOSPLIT|NOFRAME,$0
 TEXT runtime·rt0_go(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
 	// setup main stack in cpu0.gh
 	MOVV  $runtime·cpu0(SB), t0  // gh is the first field of the cpuctx struct
-	MOVV   $runtime·ramend(SB), sp  // main stack starts at the end of memory
+	MOVV  $runtime·ramend(SB), sp  // main stack starts at the end of memory
 	SUB   $16, sp
 	MOVV  sp, (g_stack+stack_hi)(t0)
 	SUB   $4096, sp, t1
@@ -275,13 +275,10 @@ TEXT runtime·rt0_go(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
 	MOVV  t6, 48(t7)
 
 	// initialize noos tasker and Go scheduler
-
 	JAL  runtime·taskerinit(SB)
 	JAL  runtime·schedinit(SB)
 
-	
 	// allocate g0 for m0 and leave gh
-
 	SUB   $16, sp
 	MOVW  $(2*const__StackMin), a0
 	MOVW  a0, 8(sp)
@@ -306,7 +303,6 @@ TEXT runtime·rt0_go(SB),NOSPLIT|NOFRAME|TOPFRAME,$0
 	MOVV  t0, g
 
 	// fix cpu0.gh, cpu0.mh
-
 	ADD   $cpuctx_mh, t2, t1  // t2 points to cpu0 (and to cpu0.gh at the same time)
 	MOVV  t2, m_g0(t1)        // cpu0.mh.g0 = cpu0.gh
 	MOVV  t2, m_gsignal(t1)   // cpu0.mh.gsignal = cpu0.gh (to easily check for handler mode)
