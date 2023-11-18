@@ -46,7 +46,7 @@ TEXT _rt0_mips64_noos(SB),NOSPLIT|NOFRAME,$0
 set_sp:
 	MOVV $0x10, t1
 	SUBV t1, t0, sp // init stack pointer
-// TODO	MOVW _gp, gp // init data pointer
+	MOVV $0, RSB // init data pointer
 	MOVW $8, v0
 	MOVW v0, (0xbfc007fc) // magic N64 hardware init
 
