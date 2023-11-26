@@ -60,10 +60,6 @@ func lfstackUnpack(val uint64) *lfnode {
 		// val before unpacking.
 		return (*lfnode)(unsafe.Pointer(uintptr(int64(val) >> cntBits << 3)))
 	}
-	if GOARCH == "mips64" && GOOS == "noos" {
-		// needs sign extended
-		return (*lfnode)(unsafe.Pointer(uintptr(int64(val) >> cntBits << 3)))
-	}
 	if GOARCH == "ppc64" && GOOS == "aix" {
 		return (*lfnode)(unsafe.Pointer(uintptr((val >> aixCntBits << 3) | 0xa<<56)))
 	}
