@@ -314,12 +314,9 @@ func asyncPreempt2() {
 var asyncPreemptStack = ^uintptr(0)
 
 func init() {
-	// TODO The FuncPCABI*() compiler intrinsics get sign-extended and
-	// findfunc() will fail because the function address not inside minpc
-	// and maxpc anymore.  Maybe the compiler intrinsics need to be fixed?
-	f := findfunc(abi.FuncPCABI0(asyncPreempt) & 0xffffffff)
+	f := findfunc(abi.FuncPCABI0(asyncPreempt))
 	total := funcMaxSPDelta(f)
-	f = findfunc(abi.FuncPCABIInternal(asyncPreempt2) & 0xffffffff)
+	f = findfunc(abi.FuncPCABIInternal(asyncPreempt2))
 	total += funcMaxSPDelta(f)
 	// Add some overhead for return PCs, etc.
 	asyncPreemptStack = uintptr(total) + 8*goarch.PtrSize
