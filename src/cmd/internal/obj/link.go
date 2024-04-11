@@ -368,6 +368,7 @@ const (
 	ABaseMIPS
 	ABaseRISCV
 	ABaseS390X
+	ABaseThumb
 	ABaseWasm
 
 	AllowedOpCodes = 1 << 11            // The number of opcodes available for any given architecture.
@@ -512,6 +513,9 @@ const (
 	// new object file format).
 	AttrIndexed
 
+	// Generate an interrupt entry/exit prologue/epilogue.
+	AttrISR
+
 	// attrABIBase is the value at which the ABI is encoded in
 	// Attribute. This must be last; all bits after this are
 	// assumed to be an ABI value.
@@ -536,6 +540,7 @@ func (a Attribute) Static() bool        { return a&AttrStatic != 0 }
 func (a Attribute) WasInlined() bool    { return a&AttrWasInlined != 0 }
 func (a Attribute) TopFrame() bool      { return a&AttrTopFrame != 0 }
 func (a Attribute) Indexed() bool       { return a&AttrIndexed != 0 }
+func (a Attribute) ISR() bool           { return a&AttrISR != 0 }
 
 func (a *Attribute) Set(flag Attribute, value bool) {
 	if value {

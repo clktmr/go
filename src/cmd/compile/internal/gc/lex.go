@@ -45,6 +45,7 @@ const (
 	Nowritebarrier     // emit compiler error instead of write barrier
 	Nowritebarrierrec  // error on write barrier in this or recursive callees
 	Yeswritebarrierrec // cancels Nowritebarrierrec in this function and callees
+	Interrupthandler   // generate interrupt handler prologue / epilogue
 
 	// Runtime-only type pragmas
 	NotInHeap // values of this type must not be heap allocated
@@ -91,6 +92,8 @@ func pragmaValue(verb string) syntax.Pragma {
 		return UintptrEscapes
 	case "go:notinheap":
 		return NotInHeap
+	case "go:interrupthandler":
+		return Interrupthandler
 	}
 	return 0
 }

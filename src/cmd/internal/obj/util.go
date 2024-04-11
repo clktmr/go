@@ -282,7 +282,7 @@ func Dconv(p *Prog, a *Addr) string {
 		v := int(a.Offset)
 		ops := "<<>>->@>"
 		switch objabi.GOARCH {
-		case "arm":
+		case "arm", "thumb":
 			op := ops[((v>>5)&3)<<1:]
 			if v&(1<<4) != 0 {
 				str = fmt.Sprintf("R%d%c%cR%d", v&15, op[0], op[1], (v>>8)&15)
@@ -459,6 +459,7 @@ const (
 	RBaseS390X = 14 * 1024 // range [14k, 15k)
 	RBaseRISCV = 15 * 1024 // range [15k, 16k)
 	RBaseWasm  = 16 * 1024
+	RBaseThumb = 17 * 1024
 )
 
 // RegisterRegister binds a pretty-printer (Rconv) for register

@@ -75,12 +75,12 @@ func (d *deadcodePass2) init() {
 		// The external linker refers main symbol directly.
 		if d.ctxt.LinkMode == LinkExternal && (d.ctxt.BuildMode == BuildModeExe || d.ctxt.BuildMode == BuildModePIE) {
 			if d.ctxt.HeadType == objabi.Hwindows && d.ctxt.Arch.Family == sys.I386 {
-				*flagEntrySymbol = "_main"
+				*FlagEntrySymbol = "_main"
 			} else {
-				*flagEntrySymbol = "main"
+				*FlagEntrySymbol = "main"
 			}
 		}
-		names = append(names, *flagEntrySymbol)
+		names = append(names, *FlagEntrySymbol)
 		if d.ctxt.BuildMode == BuildModePlugin {
 			names = append(names, objabi.PathToPrefix(*flagPluginPath)+"..inittask", objabi.PathToPrefix(*flagPluginPath)+".main", "go.plugin.tabs")
 

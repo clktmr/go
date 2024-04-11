@@ -19,7 +19,7 @@ const (
 	// minPhysPageSize is a lower-bound on the physical page size. The
 	// true physical page size may be larger than this. In contrast,
 	// sys.PhysPageSize is an upper-bound on the physical page size.
-	minPhysPageSize = 4096
+	minPhysPageSize = 4096*(1-_MCU) + 256*_MCU
 
 	// maxPhysPageSize is the maximum page size the runtime supports.
 	maxPhysPageSize = 512 << 10
@@ -469,7 +469,7 @@ func recordspan(vh unsafe.Pointer, p unsafe.Pointer) {
 	h := (*mheap)(vh)
 	s := (*mspan)(p)
 	if len(h.allspans) >= cap(h.allspans) {
-		n := 64 * 1024 / sys.PtrSize
+		n := 8 * _PageSize / sys.PtrSize
 		if n < cap(h.allspans)*3/2 {
 			n = cap(h.allspans) * 3 / 2
 		}
@@ -717,7 +717,7 @@ func (h *mheap) reclaim(npage uintptr) {
 	// locking/unlocking the heap (even with low contention). We
 	// could make the slow path here several times faster by
 	// batching heap frees.
-	const pagesPerChunk = 512
+	const pagesPerChunk = 512*(1-_MCU) + pagesPerArena*_MCU
 
 	// Bail early if there's no more reclaim work.
 	if atomic.Load64(&h.reclaimIndex) >= 1<<63 {
@@ -1786,7 +1786,7 @@ func (b *gcBits) bitp(n uintptr) (bytep *uint8, mask uint8) {
 	return b.bytep(n / 8), 1 << (n % 8)
 }
 
-const gcBitsChunkBytes = uintptr(64 << 10)
+const gcBitsChunkBytes = uintptr((64 - 62*_MCU) << 10)
 const gcBitsHeaderBytes = unsafe.Sizeof(gcBitsHeader{})
 
 type gcBitsHeader struct {
