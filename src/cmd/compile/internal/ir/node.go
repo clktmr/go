@@ -435,7 +435,7 @@ func (s NameSet) Sorted(less func(*Name, *Name) bool) []*Name {
 	return res
 }
 
-type PragmaFlag uint16
+type PragmaFlag uint32
 
 const (
 	// Func pragmas.
@@ -455,6 +455,7 @@ const (
 	Nowritebarrier     // emit compiler error instead of write barrier
 	Nowritebarrierrec  // error on write barrier in this or recursive callees
 	Yeswritebarrierrec // cancels Nowritebarrierrec in this function and callees
+	Interrupthandler   // generate interrupt handler prologue / epilogue
 
 	// Go command pragmas
 	GoBuildPragma
