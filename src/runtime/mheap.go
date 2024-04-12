@@ -19,7 +19,7 @@ const (
 	// minPhysPageSize is a lower-bound on the physical page size. The
 	// true physical page size may be larger than this. In contrast,
 	// sys.PhysPageSize is an upper-bound on the physical page size.
-	minPhysPageSize = 4096
+	minPhysPageSize = 4096*(1-_MCU) + 256*_MCU
 
 	// maxPhysPageSize is the maximum page size the runtime supports.
 	maxPhysPageSize = 512 << 10
@@ -43,7 +43,7 @@ const (
 	//
 	// Must be a multiple of the pageInUse bitmap element size and
 	// must also evenly divid pagesPerArena.
-	pagesPerReclaimerChunk = 512
+	pagesPerReclaimerChunk = 512*(1-_MCU) + pagesPerArena*_MCU
 
 	// go115NewMCentralImpl is a feature flag for the new mcentral implementation.
 	//
@@ -513,7 +513,7 @@ func recordspan(vh unsafe.Pointer, p unsafe.Pointer) {
 	h := (*mheap)(vh)
 	s := (*mspan)(p)
 	if len(h.allspans) >= cap(h.allspans) {
-		n := 64 * 1024 / sys.PtrSize
+		n := 8 * _PageSize / sys.PtrSize
 		if n < cap(h.allspans)*3/2 {
 			n = cap(h.allspans) * 3 / 2
 		}
@@ -1872,7 +1872,7 @@ func (b *gcBits) bitp(n uintptr) (bytep *uint8, mask uint8) {
 	return b.bytep(n / 8), 1 << (n % 8)
 }
 
-const gcBitsChunkBytes = uintptr(64 << 10)
+const gcBitsChunkBytes = uintptr((64*(1-_MCU) + 2*memScale*_MCU) << 10)
 const gcBitsHeaderBytes = unsafe.Sizeof(gcBitsHeader{})
 
 type gcBitsHeader struct {

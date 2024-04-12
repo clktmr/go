@@ -6,6 +6,8 @@
 #include "funcdata.h"
 #include "textflag.h"
 
+#ifndef GOOS_noos
+
 // func rt0_go()
 TEXT runtime·rt0_go(SB),NOSPLIT,$0
 	// X2 = stack; A0 = argc; A1 = argv
@@ -83,6 +85,8 @@ TEXT runtime·cputicks(SB),NOSPLIT,$0-8
 	MOV	A0, ret+0(FP)
 	RET
 
+#endif
+
 // systemstack_switch is a dummy routine that systemstack leaves at the bottom
 // of the G stack. We need to distinguish the routine that
 // lives at the bottom of the G stack from the one that lives
@@ -98,8 +102,10 @@ TEXT runtime·systemstack(SB), NOSPLIT, $0-8
 	MOV	fn+0(FP), CTXT	// CTXT = fn
 	MOV	g_m(g), T0	// T0 = m
 
+#ifndef GOOS_noos
 	MOV	m_gsignal(T0), T1	// T1 = gsignal
 	BEQ	g, T1, noswitch
+#endif
 
 	MOV	m_g0(T0), T1	// T1 = g0
 	BEQ	g, T1, noswitch
@@ -179,11 +185,13 @@ TEXT runtime·morestack(SB),NOSPLIT|NOFRAME,$0-0
 	CALL	runtime·badmorestackg0(SB)
 	CALL	runtime·abort(SB)
 
+#ifndef GOOS_noos
 	// Cannot grow signal stack (m->gsignal).
 	MOV	m_gsignal(A0), A1
 	BNE	g, A1, 3(PC)
 	CALL	runtime·badmorestackgsignal(SB)
 	CALL	runtime·abort(SB)
+#endif
 
 	// Called from f.
 	// Set g->sched to context in f.

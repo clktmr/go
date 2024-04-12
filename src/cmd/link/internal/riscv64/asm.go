@@ -16,7 +16,70 @@ import (
 	"sync"
 )
 
+func lookupFuncSym(syms *sym.Symbols, name string) *sym.Symbol {
+	if s := syms.ROLookup(name, sym.SymVerABI0); s != nil && s.FuncInfo != nil {
+		return s
+	}
+	if s := syms.ROLookup(name, sym.SymVerABIInternal); s != nil && s.FuncInfo != nil {
+		return s
+	}
+	return nil
+}
+
 func gentext2(ctxt *ld.Link, ldr *loader.Loader) {
+	if ctxt.HeadType != objabi.Hnoos {
+		return
+	}
+	vectors := ctxt.Syms.Lookup("runtime.vectors", 0)
+	vectors.Type = sym.STEXT
+	vectors.Attr |= sym.AttrReachable
+	vectors.Align = 8
+
+	unhandledInterrupt := ctxt.Syms.Lookup("runtime.unhandledExternalInterrupt", 0)
+	if unhandledInterrupt == nil {
+		ld.Errorf(nil, "runtime.unhandledExternalInterrupt not defined")
+	}
+
+	// search for user defined ISRs: //go:linkname functionName IRQ%d_Handler
+	var irqHandlers [1024]*sym.Symbol // BUG: 1024 is PLIC specific
+	irqNum := 1
+	for i := 1; i < len(irqHandlers); i++ {
+		s := lookupFuncSym(ctxt.Syms, ld.InterruptHandler(i))
+		if s == nil {
+			irqHandlers[i] = unhandledInterrupt
+		} else {
+			irqHandlers[i] = s
+			irqNum = i + 1
+		}
+	}
+	vectors.AddUint64(ctxt.Arch, uint64(irqNum))
+	for _, s := range irqHandlers[1:irqNum] {
+		s.Attr |= sym.AttrReachable
+		rel := vectors.AddRel()
+		rel.Off = int32(len(vectors.P))
+		rel.Siz = 8
+		rel.Type = objabi.R_ADDR
+		rel.Sym = s
+		vectors.AddUint64(ctxt.Arch, 0)
+	}
+	ctxt.Textp = append(ctxt.Textp, vectors)
+
+	// move entry symbol on the beggining of text segment
+	entry := ctxt.Syms.ROLookup(*ld.FlagEntrySymbol, sym.SymVerABI0)
+	if entry == nil || entry.FuncInfo == nil {
+		entry = ctxt.Syms.ROLookup(*ld.FlagEntrySymbol, sym.SymVerABIInternal)
+		if entry == nil || entry.FuncInfo == nil {
+			ld.Errorf(nil, "cannot find entry function: %s", *ld.FlagEntrySymbol)
+		}
+	}
+	for i, s := range ctxt.Textp {
+		if s == entry {
+			copy(ctxt.Textp[1:], ctxt.Textp[:i])
+			ctxt.Textp[0] = s
+			return
+		}
+	}
+	ld.Errorf(entry, "cannot find symbol in ctxt.Textp")
 }
 
 func adddynrela(target *ld.Target, syms *ld.ArchSyms, rel *sym.Symbol, s *sym.Symbol, r *sym.Reloc) {
@@ -151,7 +214,7 @@ func asmb2(ctxt *ld.Link) {
 
 	ctxt.Out.SeekSet(0)
 	switch ctxt.HeadType {
-	case objabi.Hlinux:
+	case objabi.Hlinux, objabi.Hnoos:
 		ld.Asmbelf(ctxt, int64(symo))
 	default:
 		ld.Errorf(nil, "unsupported operating system")

@@ -10,7 +10,7 @@ import (
 	"unsafe"
 )
 
-const itabInitSize = 512
+const itabInitSize = 512 * (1 - _MCU)
 
 var (
 	itabLock      mutex                               // lock for accessing itab table
@@ -245,6 +245,11 @@ imethods:
 func itabsinit() {
 	lockInit(&itabLock, lockRankItab)
 	lock(&itabLock)
+	if _MCU != 0 {
+		// allocate starter table
+		itabTable = (*itabTableType)(mallocgc((2+126)*sys.PtrSize, nil, true))
+		itabTable.size = 126
+	}
 	for _, md := range activeModules() {
 		for _, i := range md.itablinks {
 			itabAdd(i)

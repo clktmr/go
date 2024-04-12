@@ -129,6 +129,12 @@ const (
 	// _64bit = 1 on 64-bit systems, 0 on 32-bit systems
 	_64bit = 1 << (^uintptr(0) >> 63) / 2
 
+	_ARMv7M     = sys.GoosNoos * sys.GoarchThumb
+	_RV64G      = sys.GoosNoos * sys.GoarchRiscv64
+	_MCU        = _ARMv7M + _RV64G
+	logMemScale = 0*_ARMv7M + 3*_RV64G
+	memScale    = 1 << logMemScale
+
 	// Tiny allocator parameters, see "Tiny allocator" comment in malloc.go.
 	_TinySize      = 16
 	_TinySizeClass = int8(2)
@@ -136,7 +142,7 @@ const (
 	_FixAllocChunk = 16 << 10 // Chunk size for FixAlloc
 
 	// Per-P, per order stack segment cache size.
-	_StackCacheSize = 32 * 1024
+	_StackCacheSize = 32*1024*(1-_MCU) + 4*1024*(1+memScale/2)*_MCU
 
 	// Number of orders that get caching. Order 0 is FixedStack
 	// and each successive order is twice as large.
@@ -150,7 +156,9 @@ const (
 	//   windows/32       | 4KB        | 3
 	//   windows/64       | 8KB        | 2
 	//   plan9            | 4KB        | 3
-	_NumStackOrders = 4 - sys.PtrSize/4*sys.GoosWindows - 1*sys.GoosPlan9
+	//   MCU/32           | 1KB        | 2
+	//   MCU/64           | 2KB        | 3
+	_NumStackOrders = 4 - sys.PtrSize/4*sys.GoosWindows - 1*sys.GoosPlan9 - (2-logMemScale/8)*_MCU
 
 	// heapAddrBits is the number of bits in a heap address. On
 	// amd64, addresses are sign-extended beyond heapAddrBits. On
@@ -207,14 +215,24 @@ const (
 	// arenaBaseOffset to offset into the top 4 GiB.
 	//
 	// WebAssembly currently has a limit of 4GB linear memory.
-	heapAddrBits = (_64bit*(1-sys.GoarchWasm)*(1-sys.GoosDarwin*sys.GoarchArm64))*48 + (1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle)) + 33*sys.GoosDarwin*sys.GoarchArm64
+	//
+	// ARMv7-M defines 512MB SRAM region at 0x20000000 and 1GB External RAM
+	// region at 0x60000000. This limits the maximum value of memory address
+	// to 0x9FFFFFFF. arenaBaseOffset is used to offset addresses by
+	// -0x20000000 so all possible RAM fits into 2GB (offsetted). For now
+	// the supported address space is further limited to only 1 MB.
+	//
+	// In case of bare-metal RISC-V/64 the RAM starts typically at 0x80000000.
+	// This is true for SPIKE, QEMU and many RISC-V SOCs. The arenaBaseOffset
+	// is set to 0x80000000 and the supported address space is limited to 8 MB.
+	heapAddrBits = (_64bit*(1-sys.GoarchWasm)*(1-sys.GoosDarwin*sys.GoarchArm64)*(1-_MCU))*48 + (1-_64bit+sys.GoarchWasm)*(1-_MCU)*(32-(sys.GoarchMips+sys.GoarchMipsle)) + 33*sys.GoosDarwin*sys.GoarchArm64 + 20*_ARMv7M + 23*_RV64G
 
 	// maxAlloc is the maximum size of an allocation. On 64-bit,
 	// it's theoretically possible to allocate 1<<heapAddrBits bytes. On
 	// 32-bit, however, this is one less than 1<<32 because the
 	// number of bytes in the address space doesn't actually fit
 	// in a uintptr.
-	maxAlloc = (1 << heapAddrBits) - (1-_64bit)*1
+	maxAlloc = (1 << heapAddrBits) - (1-_64bit)*(1-_MCU)
 
 	// The number of bits in a heap address, the size of heap
 	// arenas, and the L1 and L2 arena map sizes are related by
@@ -247,7 +265,7 @@ const (
 	// logHeapArenaBytes is log_2 of heapArenaBytes. For clarity,
 	// prefer using heapArenaBytes where possible (we need the
 	// constant to compute some other constants).
-	logHeapArenaBytes = (6+20)*(_64bit*(1-sys.GoosWindows)*(1-sys.GoarchWasm)) + (2+20)*(_64bit*sys.GoosWindows) + (2+20)*(1-_64bit) + (2+20)*sys.GoarchWasm
+	logHeapArenaBytes = (6+20)*(_64bit*(1-sys.GoosWindows)*(1-sys.GoarchWasm)*(1-_MCU)) + (2+20)*(_64bit*sys.GoosWindows) + (2+20)*(1-_64bit)*(1-_MCU) + (14+logMemScale)*_MCU + (2+20)*sys.GoarchWasm
 
 	// heapArenaBitmapBytes is the size of each heap arena's bitmap.
 	heapArenaBitmapBytes = heapArenaBytes / (sys.PtrSize * 8 / 2)
@@ -302,7 +320,9 @@ const (
 	//
 	// On other platforms, the user address space is contiguous
 	// and starts at 0, so no offset is necessary.
-	arenaBaseOffset = 0xffff800000000000*sys.GoarchAmd64 + 0x0a00000000000000*sys.GoosAix
+	//
+	// In case of ARMv7-M the SRAM region starts at 0x20000000.
+	arenaBaseOffset = 0xffff800000000000*sys.GoarchAmd64 + 0x0a00000000000000*sys.GoosAix + _ARMv7M*(1<<32-0x20000000) + _RV64G*(1<<64-0x80000000)
 	// A typed version of this constant that will make it into DWARF (for viewcore).
 	arenaBaseOffsetUintptr = uintptr(arenaBaseOffset)
 
@@ -484,7 +504,9 @@ func mallocinit() {
 	lockInit(&globalAlloc.mutex, lockRankGlobalAlloc)
 
 	// Create initial arena growth hints.
-	if sys.PtrSize == 8 {
+	if _MCU != 0 {
+		mheap_.arena.init(sysReserveMaxArena())
+	} else if sys.PtrSize == 8 {
 		// On a 64-bit machine, we pick the following hints
 		// because:
 		//
@@ -634,6 +656,9 @@ func (h *mheap) sysAlloc(n uintptr) (v unsafe.Pointer, size uintptr) {
 	if v != nil {
 		size = n
 		goto mapped
+	}
+	if _MCU != 0 {
+		return nil, 0
 	}
 
 	// Try to grow the heap at a hint address.
@@ -1336,6 +1361,10 @@ func persistentalloc(size, align uintptr, sysStat *uint64) unsafe.Pointer {
 // See issue 9174.
 //go:systemstack
 func persistentalloc1(size, align uintptr, sysStat *uint64) *notInHeap {
+	if _MCU != 0 {
+		return sysPersistentAlloc(size, align, sysStat)
+	}
+
 	const (
 		maxBlock = 64 << 10 // VM reservation granularity is 64K on windows
 	)

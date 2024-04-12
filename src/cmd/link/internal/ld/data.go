@@ -383,6 +383,10 @@ func (st *relocSymState) relocsym(s loader.Sym, P []byte) {
 
 			o = ldr.SymValue(rs) + r.Add()
 
+			if !dwarf && ctxt.Arch.Family == sys.Thumb && r.Sym.Type == sym.STEXT {
+				o += 1 // thumb function call address
+			}
+
 			// On amd64, 4-byte offsets will be sign-extended, so it is impossible to
 			// access more than 2GB of static data; fail at link time is better than
 			// fail at runtime. See https://golang.org/issue/7980.
@@ -1399,6 +1403,50 @@ func (ctxt *Link) dodata2(symGroupType []sym.SymKind) {
 	// Give zeros sized symbols space if necessary.
 	fixZeroSizedSymbols2(ctxt)
 
+	if ctxt.HeadType == objabi.Hnoos {
+		// leave some read-only variables in Flash (hack to save RAM)
+		for _, s := range ctxt.Syms.Allsym {
+			if strings.HasPrefix(s.Name, "unicode..stmp_") {
+				s.Type = sym.SRODATA
+				continue
+			}
+			switch s.Name {
+			case "embedded/rtos.errorsByNumber",
+				"math.mPi4", "math._tanP", "math._tanQ", "math._lgamA",
+				"math._lgamR", "math._lgamS", "math._lgamT", "math._lgamU",
+				"math._lgamV", "math._lgamW", "math._sin", "math._cos",
+				"math.pow10tab", "math.pow10postab32", "math.pow10negtab32",
+				"math.tanhP", "math.tanhQ", "math._gamP", "math._gamQ",
+				"math._gamS",
+				"math/big.pow5tab", "math/big._Accuracy_index",
+				"math/big._RoundingMode_index",
+				"math/rand.rngCooked", "math/rand.ke", "math/rand.we",
+				"math/rand.fe", "math/rand.kn", "math/rand.wn", "math/rand.fn",
+				"runtime.zeroVal", "runtime.staticbytes",
+				"runtime.fastlog2Table", "runtime.class_to_size",
+				"runtime.class_to_allocnpages", "runtime.class_to_divmagic",
+				"runtime.size_to_class8", "runtime.size_to_class128",
+				"runtime.waitReasonStrings", "runtime.boundsErrorFmts",
+				"runtime.boundsNegErrorFmts", "runtime.finalizer1",
+				"runtime.gcMarkWorkerModeStrings", "runtime.gStatusStrings",
+				"runtime.emptymspan",
+				"runtime/internal/sys.ntz8tab",
+				"strconv.smallPowersOfTen", "strconv.powersOfTen",
+				"strconv.uint64pow10", "strconv.leftcheats",
+				"strconv.isPrint32", "strconv.isPrint16",
+				"strconv.isNotPrint32", "strconv.isNotPrint16",
+				"strconv.isGraphic", "strconv.float64info",
+				"strconv.float32info",
+				"syscall.errors",
+				"time.std0x", "time.months", "time.days", "time.daysBefore",
+				"time.utcLoc",
+				"unicode/utf8.first", "unicode/utf8.acceptRanges":
+
+				s.Type = sym.SRODATA
+			}
+		}
+	}
+
 	// Collect data symbols by type into data.
 	state := dodataState{ctxt: ctxt, symGroupType: symGroupType}
 	ldr := ctxt.loader
@@ -1794,6 +1842,13 @@ func (state *dodataState) allocateDataSections2(ctxt *Link) {
 	if !ctxt.UseRelro() {
 		ldr.SetSymSect(ldr.LookupOrCreateSym("runtime.types", 0), sect)
 		ldr.SetSymSect(ldr.LookupOrCreateSym("runtime.etypes", 0), sect)
+	}
+	if ctxt.HeadType == objabi.Hnoos {
+		ldr.SetSymSect(ldr.LookupOrCreateSym("runtime.ramstart", 0), sect)
+		ldr.SetSymSect(ldr.LookupOrCreateSym("runtime.ramend", 0), sect)
+		ldr.SetSymSect(ldr.LookupOrCreateSym("runtime.romdata", 0), sect)
+		ldr.SetSymSect(ldr.LookupOrCreateSym("runtime.nodmastart", 0), sect)
+		ldr.SetSymSect(ldr.LookupOrCreateSym("runtime.nodmaend", 0), sect)
 	}
 	for _, symn := range sym.ReadOnly {
 		symnStartValue := state.datsize
@@ -2279,9 +2334,11 @@ func (ctxt *Link) address() []*sym.Segment {
 	order = append(order, &Segtext)
 	Segtext.Rwx = 05
 	Segtext.Vaddr = va
+	Segtext.Laddr = va
 	for _, s := range Segtext.Sections {
 		va = uint64(Rnd(int64(va), int64(s.Align)))
 		s.Vaddr = va
+		s.Laddr = va
 		va += s.Length
 	}
 
@@ -2306,9 +2363,11 @@ func (ctxt *Link) address() []*sym.Segment {
 		order = append(order, &Segrodata)
 		Segrodata.Rwx = 04
 		Segrodata.Vaddr = va
+		Segrodata.Laddr = va
 		for _, s := range Segrodata.Sections {
 			va = uint64(Rnd(int64(va), int64(s.Align)))
 			s.Vaddr = va
+			s.Laddr = va
 			va += s.Length
 		}
 
@@ -2326,9 +2385,11 @@ func (ctxt *Link) address() []*sym.Segment {
 		order = append(order, &Segrelrodata)
 		Segrelrodata.Rwx = 06
 		Segrelrodata.Vaddr = va
+		Segrelrodata.Laddr = va
 		for _, s := range Segrelrodata.Sections {
 			va = uint64(Rnd(int64(va), int64(s.Align)))
 			s.Vaddr = va
+			s.Laddr = va
 			va += s.Length
 		}
 
@@ -2336,15 +2397,29 @@ func (ctxt *Link) address() []*sym.Segment {
 	}
 
 	va = uint64(Rnd(int64(va), int64(*FlagRound)))
-	if ctxt.HeadType == objabi.Haix && len(Segrelrodata.Sections) == 0 {
-		// Data sections are moved to an unreachable segment
-		// to ensure that they are position-independent.
-		// Already done if relro sections exist.
-		va += uint64(XCOFFDATABASE) - uint64(XCOFFTEXTBASE)
+	la := va
+	switch ctxt.HeadType {
+	case objabi.Haix:
+		if len(Segrelrodata.Sections) == 0 {
+			// Data sections are moved to an unreachable segment
+			// to ensure that they are position-independent.
+			// Already done if relro sections exist.
+			va += uint64(XCOFFDATABASE) - uint64(XCOFFTEXTBASE)
+			la = va
+		}
+	case objabi.Hnoos:
+		switch ctxt.Arch {
+		case sys.ArchThumb:
+			// Main stack on the lowest addresses so overflows can be detected
+			// even without MPU. Segdata.Laddr is set to main stack size (see
+			// ../thumb/asm.go:/Laddr = /)
+			va = RAM.Base + Segdata.Laddr
+		}
 	}
 	order = append(order, &Segdata)
 	Segdata.Rwx = 06
 	Segdata.Vaddr = va
+	Segdata.Laddr = la
 	var data *sym.Section
 	var noptr *sym.Section
 	var bss *sym.Section
@@ -2358,13 +2433,16 @@ func (ctxt *Link) address() []*sym.Segment {
 			vlen = int64(Segdata.Sections[i+1].Vaddr - s.Vaddr)
 		}
 		s.Vaddr = va
+		s.Laddr = la
 		va += uint64(vlen)
 		Segdata.Length = va - Segdata.Vaddr
 		if s.Name == ".data" {
 			data = s
+			la += uint64(vlen)
 		}
 		if s.Name == ".noptrdata" {
 			noptr = s
+			la += uint64(vlen)
 		}
 		if s.Name == ".bss" {
 			bss = s
@@ -2379,18 +2457,23 @@ func (ctxt *Link) address() []*sym.Segment {
 	Segdata.Filelen = bss.Vaddr - Segdata.Vaddr
 
 	va = uint64(Rnd(int64(va), int64(*FlagRound)))
+	la = uint64(Rnd(int64(la), int64(*FlagRound)))
 	order = append(order, &Segdwarf)
 	Segdwarf.Rwx = 06
 	Segdwarf.Vaddr = va
+	Segdwarf.Vaddr = la
 	for i, s := range Segdwarf.Sections {
 		vlen := int64(s.Length)
 		if i+1 < len(Segdwarf.Sections) {
 			vlen = int64(Segdwarf.Sections[i+1].Vaddr - s.Vaddr)
 		}
 		s.Vaddr = va
+		s.Laddr = la
 		va += uint64(vlen)
+		la += uint64(vlen)
 		if ctxt.HeadType == objabi.Hwindows {
 			va = uint64(Rnd(int64(va), PEFILEALIGN))
+			la = uint64(Rnd(int64(la), PEFILEALIGN))
 		}
 		Segdwarf.Length = va - Segdwarf.Vaddr
 	}
@@ -2513,6 +2596,23 @@ func (ctxt *Link) address() []*sym.Segment {
 		ldr.SetSymSect(ldr.Lookup("_end", 0), ldr.SymSect(end))
 	}
 
+	if ctxt.HeadType == objabi.Hnoos {
+		ramstart := int64(RAM.Base)
+		ramend := int64(RAM.Base + RAM.Size)
+		ctxt.xdefine("runtime.ramstart", sym.SRODATA, ramstart)
+		ctxt.xdefine("runtime.ramend", sym.SRODATA, ramend)
+		ctxt.xdefine("runtime.romdata", sym.SRODATA, int64(Segdata.Laddr))
+		nodmastart := int64(NoDMA.Base)
+		nodmaend := int64(NoDMA.Base + NoDMA.Size)
+		if nodmastart == 0 && nodmaend == 0 {
+			// avoid "relocation does not fit in 32-bits" kind of errors
+			nodmastart = ramstart
+			nodmaend = ramstart
+		}
+		ctxt.xdefine("runtime.nodmastart", sym.SRODATA, nodmastart)
+		ctxt.xdefine("runtime.nodmaend", sym.SRODATA, nodmaend)
+	}
+
 	return order
 }
 
@@ -2529,7 +2629,7 @@ func (ctxt *Link) layout(order []*sym.Segment) uint64 {
 				// Assuming the previous segment was
 				// aligned, the following rounding
 				// should ensure that this segment's
-				// VA ≡ Fileoff mod FlagRound.
+				// VA ��� Fileoff mod FlagRound.
 				seg.Fileoff = uint64(Rnd(int64(prev.Fileoff+prev.Filelen), int64(*FlagRound)))
 				if seg.Vaddr%uint64(*FlagRound) != seg.Fileoff%uint64(*FlagRound) {
 					Exitf("bad segment rounding (Vaddr=%#x Fileoff=%#x FlagRound=%#x)", seg.Vaddr, seg.Fileoff, *FlagRound)

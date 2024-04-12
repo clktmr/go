@@ -8,7 +8,9 @@
 
 package runtime
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 // FixAlloc is a simple free-list allocator for fixed size objects.
 // Malloc uses a FixAlloc wrapped around sysAlloc to manage its
@@ -77,8 +79,19 @@ func (f *fixalloc) alloc() unsafe.Pointer {
 		return v
 	}
 	if uintptr(f.nchunk) < f.size {
-		f.chunk = uintptr(persistentalloc(_FixAllocChunk, 0, f.stat))
-		f.nchunk = _FixAllocChunk
+		if _MCU != 0 {
+			nchunk := f.size
+			if nchunk == unsafe.Sizeof(mspan{}) {
+				nchunk *= 16 * (1 + _64bit) // more for mspan{} allocator
+			} else {
+				nchunk *= 2 * (1 + _64bit)
+			}
+			f.nchunk = uint32(nchunk)
+			f.chunk = uintptr(persistentalloc(nchunk, 0, f.stat))
+		} else {
+			f.chunk = uintptr(persistentalloc(_FixAllocChunk, 0, f.stat))
+			f.nchunk = _FixAllocChunk
+		}
 	}
 
 	v := unsafe.Pointer(f.chunk)
