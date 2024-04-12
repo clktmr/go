@@ -1149,6 +1149,9 @@ func recovery(gp *g) {
 	// this time returning 1. The calling function will
 	// jump to the standard return epilogue.
 	gp.sched.sp = sp
+	if GOARCH == "thumb" {
+		pc |= 1
+	}
 	gp.sched.pc = pc
 	gp.sched.lr = 0
 	gp.sched.ret = 1
@@ -1409,5 +1412,5 @@ func shouldPushSigpanic(gp *g, pc, lr uintptr) bool {
 //
 //go:nosplit
 func isAbortPC(pc uintptr) bool {
-	return pc == funcPC(abort) || ((GOARCH == "arm" || GOARCH == "arm64") && pc == funcPC(abort)+sys.PCQuantum)
+	return pc == funcPC(abort) || ((GOARCH == "arm" || GOARCH == "arm64" || GOARCH == "thumb") && pc == funcPC(abort)+sys.PCQuantum)
 }

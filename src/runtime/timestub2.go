@@ -8,6 +8,7 @@
 // +build !openbsd
 // +build !solaris
 // +build !windows
+// +build !noos
 
 package runtime
 

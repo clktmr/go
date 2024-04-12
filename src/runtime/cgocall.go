@@ -82,6 +82,8 @@
 // crosscall2 restores the callee-save registers for gcc and returns
 // to GoF, which unpacks any result values and returns to f.
 
+// +build !noos
+
 package runtime
 
 import (

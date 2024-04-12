@@ -385,16 +385,16 @@ func libinit(ctxt *Link) {
 		Exitf("cannot create %s: %v", *flagOutfile, err)
 	}
 
-	if *flagEntrySymbol == "" {
+	if *FlagEntrySymbol == "" {
 		switch ctxt.BuildMode {
 		case BuildModeCShared, BuildModeCArchive:
-			*flagEntrySymbol = fmt.Sprintf("_rt0_%s_%s_lib", objabi.GOARCH, objabi.GOOS)
+			*FlagEntrySymbol = fmt.Sprintf("_rt0_%s_%s_lib", objabi.GOARCH, objabi.GOOS)
 		case BuildModeExe, BuildModePIE:
-			*flagEntrySymbol = fmt.Sprintf("_rt0_%s_%s", objabi.GOARCH, objabi.GOOS)
+			*FlagEntrySymbol = fmt.Sprintf("_rt0_%s_%s", objabi.GOARCH, objabi.GOOS)
 		case BuildModeShared, BuildModePlugin:
-			// No *flagEntrySymbol for -buildmode=shared and plugin
+			// No *FlagEntrySymbol for -buildmode=shared and plugin
 		default:
-			Errorf(nil, "unknown *flagEntrySymbol for buildmode %v", ctxt.BuildMode)
+			Errorf(nil, "unknown *FlagEntrySymbol for buildmode %v", ctxt.BuildMode)
 		}
 	}
 }
@@ -777,7 +777,7 @@ func (ctxt *Link) linksetup() {
 
 		// In addition, on ARM, the runtime depends on the linker
 		// recording the value of GOARM.
-		if ctxt.Arch.Family == sys.ARM {
+		if ctxt.Arch.Family == sys.ARM || ctxt.Arch.Family == sys.Thumb {
 			goarm := ctxt.loader.LookupOrCreateSym("runtime.goarm", 0)
 			sb := ctxt.loader.MakeSymbolUpdater(goarm)
 			sb.SetType(sym.SDATA)
@@ -2431,7 +2431,7 @@ func datoff(ldr *loader.Loader, s loader.Sym, addr int64) int64 {
 }
 
 func Entryvalue(ctxt *Link) int64 {
-	a := *flagEntrySymbol
+	a := *FlagEntrySymbol
 	if a[0] >= '0' && a[0] <= '9' {
 		return atolwhex(a)
 	}
@@ -2443,6 +2443,9 @@ func Entryvalue(ctxt *Link) int64 {
 	}
 	if !ctxt.IsAIX() && st != sym.STEXT {
 		ldr.Errorf(s, "entry not text")
+	}
+	if ctxt.Arch.Family == sys.Thumb {
+		return ldr.SymValue(s) + 1
 	}
 	return ldr.SymValue(s)
 }

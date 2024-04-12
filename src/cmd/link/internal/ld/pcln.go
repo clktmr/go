@@ -147,7 +147,7 @@ func computeDeferReturn(ctxt *Link, deferReturnSym, s loader.Sym) uint32 {
 				switch target.Arch.Family {
 				case sys.AMD64, sys.I386:
 					deferreturn--
-				case sys.PPC64, sys.ARM, sys.ARM64, sys.MIPS, sys.MIPS64:
+				case sys.PPC64, sys.ARM, sys.ARM64, sys.MIPS, sys.MIPS64, sys.Thumb:
 					// no change
 				case sys.RISCV64:
 					// TODO(jsing): The JALR instruction is marked with
@@ -550,6 +550,9 @@ func (state *pclntab) generateFunctab(ctxt *Link, funcs []loader.Sym, inlSyms ma
 			// We need to write the offset.
 			setAddr = func(s *loader.SymbolBuilder, arch *sys.Arch, off int64, tgt loader.Sym, add int64) int64 {
 				if v := ldr.SymValue(tgt); v != 0 {
+					if arch.Family == sys.Thumb {
+						add += 1
+					}
 					s.SetUint(arch, off, uint64(v+add))
 				}
 				return 0

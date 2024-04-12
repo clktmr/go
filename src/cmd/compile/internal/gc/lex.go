@@ -47,6 +47,7 @@ const (
 	Nowritebarrier     // emit compiler error instead of write barrier
 	Nowritebarrierrec  // error on write barrier in this or recursive callees
 	Yeswritebarrierrec // cancels Nowritebarrierrec in this function and callees
+	Interrupthandler   // generate interrupt handler prologue / epilogue
 
 	// Runtime and cgo type pragmas
 	NotInHeap // values of this type must not be heap allocated
@@ -67,7 +68,8 @@ const (
 		Systemstack |
 		Nowritebarrier |
 		Nowritebarrierrec |
-		Yeswritebarrierrec
+		Yeswritebarrierrec |
+		Interrupthandler
 
 	TypePragmas = NotInHeap
 )
@@ -115,6 +117,8 @@ func pragmaFlag(verb string) PragmaFlag {
 		return UintptrEscapes
 	case "go:notinheap":
 		return NotInHeap
+	case "go:interrupthandler":
+		return Interrupthandler
 	}
 	return 0
 }

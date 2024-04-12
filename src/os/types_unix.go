@@ -4,6 +4,7 @@
 
 // +build !windows
 // +build !plan9
+// +build !noos
 
 package os
 

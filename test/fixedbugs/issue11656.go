@@ -63,6 +63,10 @@ func f(n int) {
 	case "arm":
 		binary.LittleEndian.PutUint32(ill[0:4], 0xe3a00000) // MOVW $0, R0
 		binary.LittleEndian.PutUint32(ill[4:8], 0xe5800000) // MOVW R0, (R0)
+	case "thumb":
+		binary.LittleEndian.PutUint16(ill, 0x2000) // MOVW $0, R0
+		binary.LittleEndian.PutUint16(ill, 0x6000) // MOVW R0, (R0)
+		f.x = 1
 	case "arm64":
 		binary.LittleEndian.PutUint32(ill, 0xf90003ff) // MOVD ZR, (ZR)
 	case "ppc64":
@@ -82,7 +86,7 @@ func f(n int) {
 		// Just leave it as 0 and hope for the best.
 	}
 
-	f.x = uintptr(unsafe.Pointer(&ill[0]))
+	f.x += uintptr(unsafe.Pointer(&ill[0]))
 	p := &f
 	fn := *(*func())(unsafe.Pointer(&p))
 	fn()

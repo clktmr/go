@@ -10,6 +10,7 @@ import (
 	"cmd/compile/internal/types"
 	"cmd/internal/obj"
 	"cmd/internal/obj/riscv"
+	"cmd/internal/objabi"
 )
 
 // ssaRegToReg maps ssa register numbers to obj register numbers.
@@ -578,6 +579,10 @@ func ssaGenValue(s *gc.SSAGenState, v *ssa.Value) {
 		gc.Patch(p5, p)
 
 	case ssa.OpRISCV64LoweredNilCheck:
+		if objabi.GOOS == "noos" {
+			// BUG: avoid nil check because of MMIO
+			break
+		}
 		// Issue a load which will fault if arg is nil.
 		// TODO: optimizations. See arm and amd64 LoweredNilCheck.
 		p := s.Prog(riscv.AMOVB)

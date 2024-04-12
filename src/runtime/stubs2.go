@@ -9,6 +9,7 @@
 // +build !plan9
 // +build !solaris
 // +build !windows
+// +build !noos
 
 package runtime
 

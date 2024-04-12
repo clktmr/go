@@ -1501,6 +1501,7 @@ var (
 		"386":     {"GO386", "sse2", "softfloat"},
 		"amd64":   {},
 		"arm":     {"GOARM", "5", "6", "7"},
+		"thumb":   {},
 		"arm64":   {},
 		"mips":    {"GOMIPS", "hardfloat", "softfloat"},
 		"mips64":  {"GOMIPS64", "hardfloat", "softfloat"},
