@@ -202,7 +202,7 @@ func readgogc() int32 {
 		return n
 	}
 	if _MCU != 0 {
-		return 10
+		return 50
 	} else {
 		return 100
 	}
