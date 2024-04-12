@@ -10,14 +10,23 @@ import "internal/buildcfg"
 
 const (
 	STACKSYSTEM = 0
-	StackSystem = STACKSYSTEM
 	StackBig    = 4096
 	StackSmall  = 128
 )
 
+var StackGuard, StackLimit, StackSystem int
+
 // Initialize StackGuard and StackLimit according to target system.
-var StackGuard = 928*stackGuardMultiplier() + StackSystem
-var StackLimit = StackGuard - StackSystem - StackSmall
+func init() {
+	if buildcfg.GOOS == "noos" && buildcfg.GOARCH == "thumb" {
+		StackSystem = 27 * 4
+		StackGuard = 464 + StackSystem
+	} else {
+		StackSystem = STACKSYSTEM
+		StackGuard = 928*stackGuardMultiplier() + StackSystem
+	}
+	StackLimit = StackGuard - StackSystem - StackSmall
+}
 
 // stackGuardMultiplier returns a multiplier to apply to the default
 // stack guard size. Larger multipliers are used for non-optimized

@@ -137,7 +137,7 @@ import (
 const (
 	_DebugGC         = 0
 	_ConcurrentSweep = true
-	_FinBlockSize    = 4 * 1024
+	_FinBlockSize    = 4*1024*_OS + noosFinBlockSize
 
 	// debugScanConservative enables debug logging for stack
 	// frames that are scanned conservatively.
@@ -146,7 +146,7 @@ const (
 	// sweepMinHeapDistance is a lower bound on the heap distance
 	// (in bytes) reserved for concurrent sweeping between GC
 	// cycles.
-	sweepMinHeapDistance = 1024 * 1024
+	sweepMinHeapDistance = 1024*1024*_OS + noosSweepMinHeapDistance
 )
 
 func gcinit() {
@@ -175,8 +175,10 @@ func gcenable() {
 	// Kick off sweeping and scavenging.
 	c := make(chan int, 2)
 	go bgsweep(c)
-	go bgscavenge(c)
-	<-c
+	if !noos {
+		go bgscavenge(c)
+		<-c
+	}
 	<-c
 	memstats.enablegc = true // now that runtime is initialized, GC is okay
 }
@@ -1090,12 +1092,21 @@ func gcMarkTermination(nextTriggerRatio float64) {
 			}
 			print(string(fmtNSAsMS(sbuf[:], uint64(ns))))
 		}
-		print(" ms cpu, ",
-			work.heap0>>20, "->", work.heap1>>20, "->", work.heap2>>20, " MB, ",
-			work.heapGoal>>20, " MB goal, ",
-			gcController.stackScan>>20, " MB stacks, ",
-			gcController.globalsScan>>20, " MB globals, ",
-			work.maxprocs, " P")
+		if noos {
+			print(" ms cpu, ",
+				work.heap0>>10, "->", work.heap1>>10, "->", work.heap2>>10, " KB, ",
+				work.heapGoal>>10, " KB goal, ",
+				gcController.stackScan>>10, " KB stacks, ",
+				gcController.globalsScan>>10, " KB globals, ",
+				work.maxprocs, " P")
+		} else {
+			print(" ms cpu, ",
+				work.heap0>>20, "->", work.heap1>>20, "->", work.heap2>>20, " MB, ",
+				work.heapGoal>>20, " MB goal, ",
+				gcController.stackScan>>20, " MB stacks, ",
+				gcController.globalsScan>>20, " MB globals, ",
+				work.maxprocs, " P")
+		}
 		if work.userForced {
 			print(" (forced)")
 		}

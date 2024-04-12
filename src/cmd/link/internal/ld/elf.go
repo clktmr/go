@@ -239,10 +239,10 @@ func Elfinit(ctxt *Link) {
 		ehdr.Shentsize = ELF64SHDRSIZE /* Must be ELF64SHDRSIZE */
 
 	// 32-bit architectures
-	case sys.ARM, sys.MIPS:
-		if ctxt.Arch.Family == sys.ARM {
+	case sys.ARM, sys.Thumb, sys.MIPS:
+		if ctxt.Arch.Family == sys.ARM || ctxt.Arch.Family == sys.Thumb {
 			// we use EABI on linux/arm, freebsd/arm, netbsd/arm.
-			if ctxt.HeadType == objabi.Hlinux || ctxt.HeadType == objabi.Hfreebsd || ctxt.HeadType == objabi.Hnetbsd {
+			if ctxt.HeadType == objabi.Hlinux || ctxt.HeadType == objabi.Hfreebsd || ctxt.HeadType == objabi.Hnetbsd || ctxt.HeadType == objabi.Hnoos {
 				// We set a value here that makes no indication of which
 				// float ABI the object uses, because this is information
 				// used by the dynamic linker to compare executables and
@@ -986,7 +986,7 @@ func elfphload(seg *sym.Segment) *ElfPhdr {
 		ph.Flags |= elf.PF_X
 	}
 	ph.Vaddr = seg.Vaddr
-	ph.Paddr = seg.Vaddr
+	ph.Paddr = seg.Laddr
 	ph.Memsz = seg.Length
 	ph.Off = seg.Fileoff
 	ph.Filesz = seg.Filelen
@@ -999,7 +999,7 @@ func elfphrelro(seg *sym.Segment) {
 	ph := newElfPhdr()
 	ph.Type = elf.PT_GNU_RELRO
 	ph.Vaddr = seg.Vaddr
-	ph.Paddr = seg.Vaddr
+	ph.Paddr = seg.Laddr
 	ph.Memsz = seg.Length
 	ph.Off = seg.Fileoff
 	ph.Filesz = seg.Filelen
@@ -1648,7 +1648,7 @@ func asmbElf(ctxt *Link) {
 		Exitf("unknown architecture in asmbelf: %v", ctxt.Arch.Family)
 	case sys.MIPS, sys.MIPS64:
 		eh.Machine = uint16(elf.EM_MIPS)
-	case sys.ARM:
+	case sys.ARM, sys.Thumb:
 		eh.Machine = uint16(elf.EM_ARM)
 	case sys.AMD64:
 		eh.Machine = uint16(elf.EM_X86_64)
@@ -1726,26 +1726,28 @@ func asmbElf(ctxt *Link) {
 	}
 
 	/* program header info */
-	pph = newElfPhdr()
+	if ctxt.HeadType != objabi.Hnoos {
+		pph = newElfPhdr()
 
-	pph.Type = elf.PT_PHDR
-	pph.Flags = elf.PF_R
-	pph.Off = uint64(eh.Ehsize)
-	pph.Vaddr = uint64(*FlagTextAddr) - uint64(HEADR) + pph.Off
-	pph.Paddr = uint64(*FlagTextAddr) - uint64(HEADR) + pph.Off
-	pph.Align = uint64(*FlagRound)
+		pph.Type = elf.PT_PHDR
+		pph.Flags = elf.PF_R
+		pph.Off = uint64(eh.Ehsize)
+		pph.Vaddr = uint64(*FlagTextAddr) - uint64(HEADR) + pph.Off
+		pph.Paddr = uint64(*FlagTextAddr) - uint64(HEADR) + pph.Off
+		pph.Align = uint64(*FlagRound)
 
-	/*
-	 * PHDR must be in a loaded segment. Adjust the text
-	 * segment boundaries downwards to include it.
-	 */
-	{
-		o := int64(Segtext.Vaddr - pph.Vaddr)
-		Segtext.Vaddr -= uint64(o)
-		Segtext.Length += uint64(o)
-		o = int64(Segtext.Fileoff - pph.Off)
-		Segtext.Fileoff -= uint64(o)
-		Segtext.Filelen += uint64(o)
+		/*
+		 * PHDR must be in a loaded segment. Adjust the text
+		 * segment boundaries downwards to include it.
+		 */
+		{
+			o := int64(Segtext.Vaddr - pph.Vaddr)
+			Segtext.Vaddr -= uint64(o)
+			Segtext.Length += uint64(o)
+			o = int64(Segtext.Fileoff - pph.Off)
+			Segtext.Fileoff -= uint64(o)
+			Segtext.Filelen += uint64(o)
+		}
 	}
 
 	if !*FlagD { /* -d suppresses dynamic loader format */
@@ -1821,7 +1823,7 @@ func asmbElf(ctxt *Link) {
 		phsh(getpnote(), sh)
 	}
 
-	if *flagBuildid != "" {
+	if *flagBuildid != "" && ctxt.HeadType != objabi.Hnoos {
 		sh := elfshname(".note.go.buildid")
 		resoff -= int64(elfgobuildid(sh, uint64(startva), uint64(resoff)))
 		phsh(getpnote(), sh)
@@ -2189,7 +2191,7 @@ elfobj:
 		if len(buildinfo) > 0 {
 			a += int64(elfwritebuildinfo(ctxt.Out))
 		}
-		if *flagBuildid != "" {
+		if *flagBuildid != "" && ctxt.HeadType != objabi.Hnoos {
 			a += int64(elfwritegobuildid(ctxt.Out))
 		}
 	}

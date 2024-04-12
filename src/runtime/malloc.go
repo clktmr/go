@@ -138,7 +138,7 @@ const (
 	_FixAllocChunk = 16 << 10 // Chunk size for FixAlloc
 
 	// Per-P, per order stack segment cache size.
-	_StackCacheSize = 32 * 1024
+	_StackCacheSize = 32*1024*_OS + noosStackCacheSize
 
 	// Number of orders that get caching. Order 0 is FixedStack
 	// and each successive order is twice as large.
@@ -152,7 +152,7 @@ const (
 	//   windows/32       | 4KB        | 3
 	//   windows/64       | 8KB        | 2
 	//   plan9            | 4KB        | 3
-	_NumStackOrders = 4 - goarch.PtrSize/4*goos.IsWindows - 1*goos.IsPlan9
+	_NumStackOrders = 4 - goarch.PtrSize/4*goos.IsWindows - 1*goos.IsPlan9 - noosNumStackOrders
 
 	// heapAddrBits is the number of bits in a heap address. On
 	// amd64, addresses are sign-extended beyond heapAddrBits. On
@@ -215,7 +215,7 @@ const (
 	// to a 48-bit address space like every other arm64 platform.
 	//
 	// WebAssembly currently has a limit of 4GB linear memory.
-	heapAddrBits = (_64bit*(1-goarch.IsWasm)*(1-goos.IsIos*goarch.IsArm64))*48 + (1-_64bit+goarch.IsWasm)*(32-(goarch.IsMips+goarch.IsMipsle)) + 40*goos.IsIos*goarch.IsArm64
+	heapAddrBits = (_64bit*(1-goarch.IsWasm)*(1-goos.IsIos*goarch.IsArm64))*48*_OS + (1-_64bit+goarch.IsWasm)*(32-(goarch.IsMips+goarch.IsMipsle))*_OS + 40*goos.IsIos*goarch.IsArm64*_OS + noosHeapAddrBits
 
 	// maxAlloc is the maximum size of an allocation. On 64-bit,
 	// it's theoretically possible to allocate 1<<heapAddrBits bytes. On
@@ -256,7 +256,7 @@ const (
 	// logHeapArenaBytes is log_2 of heapArenaBytes. For clarity,
 	// prefer using heapArenaBytes where possible (we need the
 	// constant to compute some other constants).
-	logHeapArenaBytes = (6+20)*(_64bit*(1-goos.IsWindows)*(1-goarch.IsWasm)*(1-goos.IsIos*goarch.IsArm64)) + (2+20)*(_64bit*goos.IsWindows) + (2+20)*(1-_64bit) + (2+20)*goarch.IsWasm + (2+20)*goos.IsIos*goarch.IsArm64
+	logHeapArenaBytes = (6+20)*(_64bit*(1-goos.IsWindows)*(1-goarch.IsWasm)*(1-goos.IsIos*goarch.IsArm64))*_OS + (2+20)*(_64bit*goos.IsWindows)*_OS + (2+20)*(1-_64bit)*_OS + (2+20)*goarch.IsWasm*_OS + (2+20)*goos.IsIos*goarch.IsArm64*_OS + noosLogHeapArenaBytes
 
 	// heapArenaBitmapBytes is the size of each heap arena's bitmap.
 	heapArenaBitmapBytes = heapArenaBytes / (goarch.PtrSize * 8 / 2)
@@ -311,7 +311,7 @@ const (
 	//
 	// On other platforms, the user address space is contiguous
 	// and starts at 0, so no offset is necessary.
-	arenaBaseOffset = 0xffff800000000000*goarch.IsAmd64 + 0x0a00000000000000*goos.IsAix
+	arenaBaseOffset = 0xffff800000000000*goarch.IsAmd64*_OS + 0x0a00000000000000*goos.IsAix + noosArenaBaseOffset
 	// A typed version of this constant that will make it into DWARF (for viewcore).
 	arenaBaseOffsetUintptr = uintptr(arenaBaseOffset)
 
@@ -491,7 +491,9 @@ func mallocinit() {
 	lockInit(&globalAlloc.mutex, lockRankGlobalAlloc)
 
 	// Create initial arena growth hints.
-	if goarch.PtrSize == 8 {
+	if noos {
+		mheap_.arena.init(sysReserveMaxArena())
+	} else if goarch.PtrSize == 8 {
 		// On a 64-bit machine, we pick the following hints
 		// because:
 		//
@@ -643,6 +645,9 @@ func (h *mheap) sysAlloc(n uintptr) (v unsafe.Pointer, size uintptr) {
 	if v != nil {
 		size = n
 		goto mapped
+	}
+	if noos {
+		return nil, 0
 	}
 
 	// Try to grow the heap at a hint address.
@@ -1402,6 +1407,10 @@ func persistentalloc(size, align uintptr, sysStat *sysMemStat) unsafe.Pointer {
 // See issue 9174.
 //go:systemstack
 func persistentalloc1(size, align uintptr, sysStat *sysMemStat) *notInHeap {
+	if noos {
+		return sysPersistentAlloc(size, align, sysStat)
+	}
+
 	const (
 		maxBlock = 64 << 10 // VM reservation granularity is 64K on windows
 	)

@@ -182,6 +182,7 @@ func (ctxt *Link) InitTextSym(s *LSym, flag int) {
 	s.Set(AttrABIWrapper, flag&ABIWRAPPER != 0)
 	s.Set(AttrNeedCtxt, flag&NEEDCTXT != 0)
 	s.Set(AttrNoFrame, flag&NOFRAME != 0)
+	s.Set(AttrISR, flag&ISR != 0)
 	s.Type = objabi.STEXT
 	ctxt.Text = append(ctxt.Text, s)
 

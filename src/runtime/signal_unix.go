@@ -355,7 +355,7 @@ func doSigPreempt(gp *g, ctxt *sigctxt) {
 	}
 }
 
-const preemptMSupported = true
+const preemptMSupported = GOARCH != "thumb"
 
 // preemptM sends a preemption request to mp. This request may be
 // handled asynchronously and may be coalesced with other requests to
@@ -395,7 +395,7 @@ func preemptM(mp *m) {
 //go:nosplit
 func sigFetchG(c *sigctxt) *g {
 	switch GOARCH {
-	case "arm", "arm64", "ppc64", "ppc64le", "riscv64":
+	case "arm", "arm64", "ppc64", "ppc64le", "riscv64", "thumb":
 		if !iscgo && inVDSOPage(c.sigpc()) {
 			// When using cgo, we save the g on TLS and load it from there
 			// in sigtramp. Just use that.

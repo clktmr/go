@@ -88,6 +88,8 @@ var ignoreSuffixes = []string{
 	"_arm64.go",
 	"_riscv64.s",
 	"_riscv64.go",
+	"_thumb.s",
+	"_thumb.go",
 	"_wasm.s",
 	"_wasm.go",
 	"_test.s",

@@ -21,7 +21,7 @@ func TestSizeof(t *testing.T) {
 		_64bit uintptr     // size on 64bit platforms
 	}{
 		{Func{}, 196, 336},
-		{Name{}, 112, 200},
+		{Name{}, 112+4, 200+8}, // EmbeddedGo: sizeof(pragma) uint16 -> uint32
 	}
 
 	for _, tt := range tests {

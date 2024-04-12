@@ -53,8 +53,8 @@ const (
 	gcOverAssistWork = 64 << 10
 
 	// defaultHeapMinimum is the value of heapMinimum for GOGC==100.
-	defaultHeapMinimum = (goexperiment.HeapMinimum512KiBInt)*(512<<10) +
-		(1-goexperiment.HeapMinimum512KiBInt)*(4<<20)
+	defaultHeapMinimum = (goexperiment.HeapMinimum512KiBInt)*(512<<10)*_OS +
+		(1-goexperiment.HeapMinimum512KiBInt)*(4<<20)*_OS + noosDefaultHeapMinimum
 
 	// scannableStackSizeSlack is the bytes of stack space allocated or freed
 	// that can accumulate on a P before updating gcController.stackSize.
@@ -401,8 +401,8 @@ func (c *gcControllerState) startCycle(markStartTime int64, procs int) {
 			c.heapGoal = c.heapLive + 64<<10
 		}
 	} else {
-		if c.heapGoal < c.heapLive+1<<20 {
-			c.heapGoal = c.heapLive + 1<<20
+		if c.heapGoal < c.heapLive+1<<20*_OS+noosHeapGoalInc {
+			c.heapGoal = c.heapLive + 1<<20*_OS + noosHeapGoalInc
 		}
 	}
 
@@ -1275,6 +1275,9 @@ func readGOGC() int32 {
 	}
 	if n, ok := atoi32(p); ok {
 		return n
+	}
+	if noos {
+		return 50
 	}
 	return 100
 }

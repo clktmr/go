@@ -19,7 +19,7 @@ const (
 	// minPhysPageSize is a lower-bound on the physical page size. The
 	// true physical page size may be larger than this. In contrast,
 	// sys.PhysPageSize is an upper-bound on the physical page size.
-	minPhysPageSize = 4096
+	minPhysPageSize = 4096*_OS + noosMinPhysPageSize
 
 	// maxPhysPageSize is the maximum page size the runtime supports.
 	maxPhysPageSize = 512 << 10
@@ -42,8 +42,8 @@ const (
 	// roughly 100µs.
 	//
 	// Must be a multiple of the pageInUse bitmap element size and
-	// must also evenly divide pagesPerArena.
-	pagesPerReclaimerChunk = 512
+	// must also evenly divid pagesPerArena.
+	pagesPerReclaimerChunk = 512*_OS + pagesPerArena*(1-_OS)
 
 	// physPageAlignedStacks indicates whether stack allocations must be
 	// physical page aligned. This is a requirement for MAP_STACK on
@@ -494,7 +494,7 @@ func recordspan(vh unsafe.Pointer, p unsafe.Pointer) {
 	assertLockHeld(&h.lock)
 
 	if len(h.allspans) >= cap(h.allspans) {
-		n := 64 * 1024 / goarch.PtrSize
+		n := 8 * _PageSize / goarch.PtrSize
 		if n < cap(h.allspans)*3/2 {
 			n = cap(h.allspans) * 3 / 2
 		}
@@ -1547,6 +1547,9 @@ func (h *mheap) scavengeAll() {
 //go:linkname runtime_debug_freeOSMemory runtime/debug.freeOSMemory
 func runtime_debug_freeOSMemory() {
 	GC()
+	if noos {
+		return
+	}
 	systemstack(func() { mheap_.scavengeAll() })
 }
 
@@ -1955,7 +1958,7 @@ func (b *gcBits) bitp(n uintptr) (bytep *uint8, mask uint8) {
 	return b.bytep(n / 8), 1 << (n % 8)
 }
 
-const gcBitsChunkBytes = uintptr(64 << 10)
+const gcBitsChunkBytes = uintptr(64<<10)*_OS + noosGCBitsChunkBytes
 const gcBitsHeaderBytes = unsafe.Sizeof(gcBitsHeader{})
 
 type gcBitsHeader struct {

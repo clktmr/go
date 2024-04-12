@@ -43,6 +43,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 )
 
@@ -50,6 +51,8 @@ var (
 	pkglistfornote []byte
 	windowsgui     bool // writes a "GUI binary" instead of a "console binary"
 	ownTmpDir      bool // set to true if tmp dir created by linker (e.g. no -tmpdir)
+	RAM            MemBlock
+	NoDMA          MemBlock
 )
 
 func init() {
@@ -96,13 +99,49 @@ var (
 	FlagStrictDups    = flag.Int("strictdups", 0, "sanity check duplicate symbol contents during object file reading (1=warn 2=err).")
 	FlagRound         = flag.Int("R", -1, "set address rounding `quantum`")
 	FlagTextAddr      = flag.Int64("T", -1, "set text segment `address`")
-	flagEntrySymbol   = flag.String("E", "", "set `entry` symbol name")
+	FlagEntrySymbol   = flag.String("E", "", "set `entry` symbol name")
 	cpuprofile        = flag.String("cpuprofile", "", "write cpu profile to `file`")
 	memprofile        = flag.String("memprofile", "", "write memory profile to `file`")
 	memprofilerate    = flag.Int64("memprofilerate", 0, "set runtime.MemProfileRate to `rate`")
 	benchmarkFlag     = flag.String("benchmark", "", "set to 'mem' or 'cpu' to enable phase benchmarking")
 	benchmarkFileFlag = flag.String("benchmarkprofile", "", "emit phase profiles to `base`_phase.{cpu,mem}prof")
+
+	stripFuncNames = flag.Int("stripfn", 0, "strip function names in pclntab, 1: remove package path, 2: blank names")
 )
+
+type MemBlock struct {
+	Base, Size uint64
+}
+
+func (mb *MemBlock) set(descr string) {
+	i := strings.IndexByte(descr, ':')
+	if i < 0 {
+		Exitf("memory layout (-M): no BASE:SIZE separator: %s", descr)
+	}
+	var err error
+	mb.Base, err = strconv.ParseUint(descr[:i], 0, 64)
+	if err != nil {
+		Exitf("memory layout (-M): bad BASE address: %v", err)
+	}
+	size := descr[i+1:]
+	scale := uint64(1)
+	switch size[len(size)-1] {
+	case 'K':
+		scale = 1024
+	case 'M':
+		scale = 1024 * 1024
+	case 'G':
+		scale = 1024 * 1024 * 1024
+	}
+	if scale != 1 {
+		size = size[:len(size)-1]
+	}
+	mb.Size, err = strconv.ParseUint(size, 0, 64)
+	if err != nil {
+		Exitf("memory layout (-M): bad SIZE: %v", err)
+	}
+	mb.Size *= scale
+}
 
 // Main is the main entry point for the linker code.
 func Main(arch *sys.Arch, theArch Arch) {
@@ -145,7 +184,28 @@ func Main(arch *sys.Arch, theArch Arch) {
 	objabi.Flagcount("v", "print link trace", &ctxt.Debugvlog)
 	objabi.Flagfn1("importcfg", "read import configuration from `file`", ctxt.readImportCfg)
 
+	var flagMemory string
+	if buildcfg.GOOS == "noos" {
+		flag.StringVar(&flagMemory, "M", "", "set memory layout: BASE1:SIZE1[,BASE2:SIZE2]")
+	}
+
 	objabi.Flagparse(usage)
+
+	if buildcfg.GOOS == "noos" {
+		descr := strings.Split(flagMemory, ",")
+		if len(descr) == 0 {
+			Exitf("memory layout (-M) not specified")
+		}
+		if len(descr) > 0 {
+			RAM.set(descr[0])
+		}
+		if len(descr) > 1 {
+			NoDMA.set(descr[1])
+		}
+		if len(descr) > 2 {
+			Exitf("-M describes more than two memory blocks")
+		}
+	}
 
 	if ctxt.Debugvlog > 0 {
 		// dump symbol info on crash

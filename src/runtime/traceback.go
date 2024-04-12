@@ -707,7 +707,11 @@ func getArgInfo(frame *stkframe, f funcInfo, needArgMap bool, ctxt *funcval) (ar
 				// in the return values.
 				retValid = *(*bool)(unsafe.Pointer(arg0 + 4*goarch.PtrSize))
 			}
-			if mv.fn != f.entry() {
+			fn := mv.fn
+			if GOARCH == "thumb" {
+				fn |= 1
+			}
+			if fn != f.entry() {
 				print("runtime: confused by ", funcname(f), "\n")
 				throw("reflect mismatch")
 			}
@@ -791,7 +795,7 @@ func traceback(pc, sp, lr uintptr, gp *g) {
 // If gp.m.libcall{g,pc,sp} information is available, it uses that information in preference to
 // the pc/sp/lr passed in.
 func tracebacktrap(pc, sp, lr uintptr, gp *g) {
-	if gp.m.libcallsp != 0 {
+	if !noos && gp.m.libcallsp != 0 {
 		// We're in C code somewhere, traceback from the saved position.
 		traceback1(gp.m.libcallpc, gp.m.libcallsp, 0, gp.m.libcallg.ptr(), 0)
 		return

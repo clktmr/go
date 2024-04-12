@@ -34,7 +34,8 @@ const (
 		ir.Systemstack |
 		ir.Nowritebarrier |
 		ir.Nowritebarrierrec |
-		ir.Yeswritebarrierrec
+		ir.Yeswritebarrierrec |
+		ir.Interrupthandler
 
 	typePragmas = ir.NotInHeap
 )
@@ -84,6 +85,8 @@ func pragmaFlag(verb string) ir.PragmaFlag {
 		return ir.RegisterParams
 	case "go:notinheap":
 		return ir.NotInHeap
+	case "go:interrupthandler":
+		return ir.Interrupthandler
 	}
 	return 0
 }

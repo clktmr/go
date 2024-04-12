@@ -409,6 +409,9 @@ func setupTextLSym(f *ir.Func, flag int) {
 	if f.ReflectMethod() {
 		flag |= obj.REFLECTMETHOD
 	}
+	if f.Pragma&ir.Interrupthandler != 0 {
+		flag |= obj.ISR
+	}
 
 	// Clumsy but important.
 	// For functions that could be on the path of invoking a deferred
