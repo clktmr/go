@@ -265,3 +265,5 @@ func Symlink(oldname, newname string) error {
 func readlink(name string) (string, error) {
 	return "", &PathError{Op: "readlink", Path: name, Err: syscall.ENOTSUP}
 }
+
+func Pipe() (r *File, w *File, err error) { return nil, nil, NewSyscallError("pipe", nil) }

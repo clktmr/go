@@ -98,3 +98,10 @@ func traceReader() *g { return nil }
 
 //go:systemstack
 func traceProcFree(pp *p) {}
+
+func StartTrace() error { return nil }
+func StopTrace()        {}
+func ReadTrace() []byte { return nil }
+
+func SetBlockProfileRate(rate int)         {}
+func SetMutexProfileFraction(rate int) int { return 0 }
