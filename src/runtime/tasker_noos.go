@@ -120,6 +120,7 @@ type tasker struct {
 	newnanotime func() int64               // see embedded/rtos.SetSystemTimer
 	newsetalarm func(ns int64)             // see embedded/rtos.SetSystemTimer
 	newwrite    func(fd int, p []byte) int // see embedded/rtos.SetSystemWriter
+	systimset   uint32
 }
 
 //go:nosplit
@@ -397,6 +398,7 @@ func syssetsystim1() {
 	// BUG: non-atomic writes
 	*(*[n]uintptr)(unsafe.Pointer(&t.nanotime)) = *(*[n]uintptr)(unsafe.Pointer(&t.newnanotime))
 	*(*[n]uintptr)(unsafe.Pointer(&t.setalarm)) = *(*[n]uintptr)(unsafe.Pointer(&t.newsetalarm))
+	atomic.Store(&t.systimset, 1)
 	curcpuSchedule() // ensure scheduler uses new timer: BUG(md): other CPUs?
 }
 

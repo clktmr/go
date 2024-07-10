@@ -82,12 +82,18 @@ func setsyswriter(w func(fd int, p []byte) int) {
 
 //go:nosplit
 func usleep(usec uint32) {
-	nanosleep(int64(usec) * 1000)
+	if atomic.Load(&thetasker.systimset) != 0 {
+		nanosleep(int64(usec) * 1000)
+		return
+	}
+	for range 1 + usec/32 {
+		osyield()
+	}
 }
 
 //go:nosplit
 func usleep_no_g(usec uint32) {
-	nanosleep(int64(usec) * 1000)
+	usleep(usec)
 }
 
 //go:nosplit
