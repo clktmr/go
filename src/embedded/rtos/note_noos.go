@@ -4,9 +4,14 @@
 
 package rtos
 
-import _ "unsafe"
+import (
+	_ "unsafe"
+)
 
 //go:linkname notewakeup runtime.rtos_notewakeup
 func notewakeup(n *Note)
+
+//go:linkname notesleep runtime.rtos_notesleep
+func notesleep(n *Note, timeout int64) bool
 
 func publicationBarrier()

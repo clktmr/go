@@ -90,15 +90,15 @@ var thetasker = tasker{
 const fbnum = 4 // number of futex hash table buckets, must be power of two
 
 type cpuctx struct {
-	gh       g               // for ISRs, must be the first field in this struct
-	t        *tasker         // points to thetasker
-	exe      muintptr        // m currently executed by CPU
-	newexe   bool            // for architecture-dependent code: exe changed
-	schedule bool            // for architecture-dependent code: run scheduler
-	runnable mq              // threads in runnable state
-	waitingt msl             // threads waiting until some time elapses
-	wakerq   [fbnum]notelist // futex wakeup request from interrupt handlers
-	mh       m               // for ISRs, mostly not written so works as cache line pad
+	gh       g        // for ISRs, must be the first field in this struct
+	t        *tasker  // points to thetasker
+	exe      muintptr // m currently executed by CPU
+	newexe   bool     // for architecture-dependent code: exe changed
+	schedule bool     // for architecture-dependent code: run scheduler
+	runnable mq       // threads in runnable state
+	waitingt msl      // threads waiting until some time elapses
+	waker    bool     // futex wakeup request from interrupt handlers
+	mh       m        // for ISRs, mostly not written so works as cache line pad
 }
 
 // id returns CPU identifier. It must be a positive integer from 0 to the
@@ -223,13 +223,11 @@ func curcpuRunScheduler() {
 	exe := curcpu.exe.ptr()
 	for {
 		// handle the wakeup requests from interrupt handlers
-		for i := range curcpu.wakerq {
-			n := curcpu.wakerq[i].removeall()
-			for n != nil {
-				next := n.release()
-				taskerFutexwakeup(&curcpu.t.waitingf[i], key32(&n.key), 1)
-				n = next
-			}
+		if curcpu.waker {
+			nn := &netpollNote
+			fb := fhash(uintptr(unsafe.Pointer(&nn.key)))
+			taskerFutexwakeup(&curcpu.t.waitingf[fb], key32(&nn.key), 1)
+			curcpu.waker = false
 		}
 
 		var nextschedt int64
@@ -300,19 +298,43 @@ func curcpuRunScheduler() {
 	}
 }
 
+var wakerq notelist
+
+func rtos_notesleep(n *notel, timeout int64) bool {
+	return netpollblock(n, timeout)
+}
+
+// rtos_notewakeup wakes up the netpoller if a goroutine is waiting or in
+// pdWait.  Otherwise it only sets the note to pdReady.
+//
 //go:nowritebarrierrec
 //go:nosplit
 func rtos_notewakeup(n *notel) {
-	if !atomic.Cas(key32(&n.key), 0, 1) {
-		return
+	for {
+		old := n.g.Load()
+		if old < pdWait {
+			if n.g.CompareAndSwap(old, pdReady) {
+				return
+			}
+		} else {
+			break
+		}
 	}
-	if !isr() {
-		futexwakeup(key32(&n.key), 1)
-		return
-	}
+
 	if n.acquire() {
-		curcpu().wakerq[fhash(uintptr(unsafe.Pointer(&n.key)))].insert(n)
-		curcpuWakeup()
+		wakerq.insert(n)
+
+		nn := &netpollNote
+		if !atomic.Cas(key32(&nn.key), 0, 1) {
+			return
+		}
+		if isr() {
+			curcpu().waker = true
+			curcpuWakeup()
+		} else {
+			futexwakeup(key32(&nn.key), 1)
+			return
+		}
 	}
 }
 
@@ -320,7 +342,9 @@ func rtos_notewakeup(n *notel) {
 
 // notel is a note that contains a link field to construct linked lists of notes
 type notel struct {
-	key  uintptr // must be the first field
+	g    atomic.Uintptr
+	seq  uintptr
+	lock mutex // protects seq
 	link notelptr
 }
 

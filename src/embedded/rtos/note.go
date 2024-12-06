@@ -19,18 +19,20 @@ import (
 //
 // Subsequent Clear must be called only after previous Sleep has returned, e.g.
 // it is disallowed to call Clear straight after Wakeup.
+//
+// A Note must not be copied after first use.
 type Note struct {
 	// must be in sync with runtime.notel
 	key  uintptr
+	seq  uintptr
+	lock uintptr // FIXME mutex size?
 	link uintptr
 }
 
 // Sleep sleeps on the cleared note until other goroutine or interrupt handler
 // call Wakeup or until the timeout. Reports whether it was awakened before
 // timeout.
-func (n *Note) Sleep(timeout time.Duration) bool {
-	return runtime_notetsleepg(n, int64(timeout))
-}
+func (n *Note) Sleep(timeout time.Duration) bool { return notesleep(n, int64(timeout)) }
 
 // Wakeup wakeups the goroutine that sleeps on the note. The Wakeup remains in
 // effect until subequent Clear so future Sleep will return immediately.
@@ -44,6 +46,3 @@ func (n *Note) Clear() {
 	n.key = 0
 	publicationBarrier()
 }
-
-//go:linkname runtime_notetsleepg runtime.notetsleepg
-func runtime_notetsleepg(n *Note, ns int64) bool
