@@ -5,12 +5,12 @@
 package runtime
 
 import (
+	"embedded/arch/cortexm/mpu"
 	"embedded/mmio"
 	"internal/abi"
 	"internal/cpu/cortexm"
 	"internal/cpu/cortexm/cmt"
 	"internal/cpu/cortexm/debug/itm"
-	"internal/cpu/cortexm/mpu"
 	"internal/cpu/cortexm/nvic"
 	"internal/cpu/cortexm/pft"
 	"internal/cpu/cortexm/scb"
