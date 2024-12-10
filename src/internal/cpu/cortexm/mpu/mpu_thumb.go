@@ -21,8 +21,8 @@ func p() *regs { return (*regs)(unsafe.Pointer(uintptr(0xE000ED90))) }
 // s - true if separate instruction and data regions are supported.
 func Type() (i, d int, s bool) {
 	typ := p().typ.Load()
-	i = int(typ>>16) & 0xf
-	d = int(typ>>8) & 0xf
+	i = int(typ>>16) & 0xff
+	d = int(typ>>8) & 0xff
 	s = (typ&1 != 0)
 	return
 }

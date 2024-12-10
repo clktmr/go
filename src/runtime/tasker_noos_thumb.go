@@ -165,34 +165,32 @@ func taskerinit() {
 		}
 	}
 
-	// Use MPU if available to catch nil pointer dereferences (need 4 regions)
+	// Use MPU if available to catch bad pointer dereferences.
 	if _, d, _ := mpu.Type(); d >= 4 && mpu.State()&mpu.ENABLE == 0 {
-		// Bellow there is the MPU configuration that more or less corresponds
-		// to the default CPU behavior, without MPU enabled.
+		// Bellow there is the MPU configuration that corresponds to the
+		// default CPU behavior, without MPU enabled.
 		//
-		// All regions starts at address 0x00000000. The SIZE and SRD
-		// (sub-region disabled) fields are used to set the region address
-		// ranges.
-		//
-		// The first 64 bytes of the code region are set inaccessible to catch
-		// nil pointer dereferences. The code region is declared read/write
-		// because some MCUs use normal memory access to program Flash.
+		// The first 64 bytes of the memory are configured inaccessible in the
+		// user mode to catch bad pointer dereferences.
 		const (
 			noacc  = mpu.A____
 			code   = mpu.Arwrw | mpu.C                    // normal WT
 			ram    = mpu.Arwrw | mpu.TEX1 | mpu.C | mpu.B // normal WB+WA
 			periph = mpu.Arwrw | mpu.B | mpu.XN           // device
 		)
-		mpu.SetRegion(0x00000000|mpu.VALID|0, mpu.ENA|mpu.SIZE(29)|code)
-		mpu.SetRegion(0x00000000|mpu.VALID|1, mpu.ENA|mpu.SIZE(6)|noacc)
-		mpu.SetRegion(
-			0x00000000|mpu.VALID|2,
-			mpu.ENA|mpu.SIZE(32)|mpu.SRD(0b10011011)|periph,
-		)
-		mpu.SetRegion(
-			0x00000000|mpu.VALID|3,
-			mpu.ENA|mpu.SIZE(32)|mpu.SRD(0b11100101)|ram,
-		)
+
+		// The peripheral region covers adresses not covered by other regions.
+		mpu.SetRegion(mpu.VALID|0, mpu.ENA|mpu.SIZE(32)|periph)
+
+		// The code region occupies the first 512 MiB.
+		mpu.SetRegion(mpu.VALID|1, mpu.ENA|mpu.SIZE(29)|code)
+
+		// The first 64 bytes of the code region are inaccessible.
+		mpu.SetRegion(mpu.VALID|2, mpu.ENA|mpu.SIZE(6)|noacc)
+
+		// RAM region occupies 512 MiB @ 0x2000_0000 and 1 GiB @ 0x6000_0000.
+		mpu.SetRegion(mpu.VALID|3, mpu.ENA|mpu.SIZE(32)|mpu.SRD(0b11100101)|ram)
+
 		mmio.MB()
 		mpu.Set(mpu.ENABLE | mpu.PRIVDEFENA)
 		mmio.MB()
