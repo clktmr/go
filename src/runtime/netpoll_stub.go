@@ -70,9 +70,10 @@ func netpollAdjustWaiters(delta int32) {
 }
 
 const (
-	pdNil   uintptr = 0
-	pdReady uintptr = 1
-	pdWait  uintptr = 2
+	pdClear   uintptr = 0
+	pdTimeout uintptr = 1
+	pdReady   uintptr = 2
+	pdWait    uintptr = 3
 )
 
 // netpollblock parks the goroutine on pd.  It returns whether the note was
@@ -109,16 +110,14 @@ func netpollblock(pd *notel, ns int64) bool {
 
 	// set the gpp semaphore to pdWait
 	for {
-		if gpp.Load() == pdReady {
+		old := gpp.Load()
+		if old == pdReady {
 			return true
-		}
-		if gpp.CompareAndSwap(pdNil, pdWait) {
-			break
-		}
-
-		// Double check that this isn't corrupt; otherwise we'd loop
-		// forever.
-		if v := gpp.Load(); v != pdReady && v != pdNil {
+		} else if old == pdClear || old == pdTimeout {
+			if gpp.CompareAndSwap(old, pdWait) {
+				break
+			}
+		} else { // old >= pdWait
 			throw("runtime: double wait")
 		}
 	}
@@ -141,32 +140,23 @@ func netpollblockcommit(gp *g, gpp unsafe.Pointer) bool {
 	return r
 }
 
-// netpollunblock moves pd.g depending on ioready into the pdNil or pdReady
-// state. This returns any goroutine blocked on pd.g. It adds any adjustment to
-// netpollWaiters to *delta; this adjustment should be applied after the
-// goroutine has been marked ready.
-func netpollunblock(pd *notel, ioready bool, delta *int32) *g {
+// netpollunblock moves pd.g into the new state, returning any goroutine blocked
+// on pd.g. It adds any adjustment to netpollWaiters to *delta; this adjustment
+// should be applied after the goroutine has been marked ready.
+func netpollunblock(pd *notel, new uintptr, delta *int32) *g {
 	gpp := &pd.g
 
 	for {
 		old := gpp.Load()
-		if old == pdReady {
+		if old == pdReady || old == pdClear {
 			return nil
-		}
-		if old == pdNil && !ioready {
-			return nil
-		}
-		new := pdNil
-		if ioready {
-			new = pdReady
 		}
 		if gpp.CompareAndSwap(old, new) {
-			if old == pdWait {
-				old = pdNil
-			} else if old != pdNil {
+			if old > pdWait {
 				*delta -= 1
+				return (*g)(unsafe.Pointer(old))
 			}
-			return (*g)(unsafe.Pointer(old))
+			return nil
 		}
 	}
 }
@@ -180,7 +170,7 @@ func netpollunblock(pd *notel, ioready bool, delta *int32) *g {
 //
 //go:nowritebarrier
 func netpollready(toRun *gList, pd *notel) (delta int32) {
-	gp := netpollunblock(pd, true, &delta)
+	gp := netpollunblock(pd, pdReady, &delta)
 	if gp != nil {
 		toRun.push(gp)
 	}
@@ -199,7 +189,7 @@ func netpolldeadline(arg any, seq uintptr) {
 	}
 
 	delta := int32(0)
-	gp := netpollunblock(pd, false, &delta)
+	gp := netpollunblock(pd, pdTimeout, &delta)
 	unlock(&pd.lock)
 	if gp != nil {
 		goready(gp, 1)
