@@ -324,16 +324,14 @@ func rtos_notewakeup(n *notel) {
 	if n.acquire() {
 		wakerq.insert(n)
 
-		nn := &netpollNote
-		if !atomic.Cas(key32(&nn.key), 0, 1) {
-			return
-		}
 		if isr() {
+			if !atomic.Cas(key32(&netpollNote.key), 0, 1) {
+				return
+			}
 			curcpu().waker = true
 			curcpuWakeup()
 		} else {
-			futexwakeup(key32(&nn.key), 1)
-			return
+			netpollBreak()
 		}
 	}
 }
