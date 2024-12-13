@@ -38,11 +38,6 @@ func (n *Note) Sleep(timeout time.Duration) bool { return notesleep(n, int64(tim
 // effect until subequent Clear so future Sleep will return immediately.
 func (n *Note) Wakeup() { notewakeup(n) }
 
-// Clear clears the note. Any Wakeup that happened before Clear is forgotten.
-// Clear works as a publication barrier, that is, the Clear itself and any
-// memory writes preceding it in the program order happens before any memory
-// writes that follows it.
-func (n *Note) Clear() {
-	n.key = 0
-	publicationBarrier()
-}
+// Clear clears the note. Returns whether the note was awake at the time of
+// clearing.
+func (n *Note) Clear() bool { return noteclear(n) }

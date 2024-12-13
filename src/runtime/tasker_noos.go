@@ -300,6 +300,14 @@ func curcpuRunScheduler() {
 
 var wakerq notelist
 
+func rtos_noteclear(n *notel) bool {
+	old := n.g.Swap(pdClear)
+	if old >= pdWait {
+		throw("clear during sleep")
+	}
+	return old == pdReady
+}
+
 func rtos_notesleep(n *notel, timeout int64) bool {
 	return netpollblock(n, timeout)
 }
