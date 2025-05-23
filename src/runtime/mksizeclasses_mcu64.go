@@ -78,10 +78,10 @@ func main() {
 const (
 	// Constants that we use and will transfer to the runtime.
 	maxSmallSize = 1 << 12
-	smallSizeDiv = 8
-	smallSizeMax = 256
+	smallSizeDiv = 16
+	smallSizeMax = 512
 	largeSizeDiv = 128
-	pageShift    = 11
+	pageShift    = 12
 
 	// Derived constants.
 	pageSize = 1 << pageShift
