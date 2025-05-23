@@ -6,8 +6,10 @@ package os
 
 import (
 	_ "embedded/rtos"
+	"internal/filepathlite"
 	"io"
 	"io/fs"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -19,7 +21,7 @@ func tempDir() string {
 type file struct {
 	f          fs.File
 	name       string
-	dirinfo    *dirInfo // nil unless directory being read
+	dirinfo    atomic.Pointer[dirInfo] // nil unless directory being read
 	appendMode bool
 }
 
@@ -29,6 +31,18 @@ func openFileNolog(name string, flag int, perm FileMode) (*File, error) {
 		return nil, &PathError{Op: "open", Path: name, Err: err}
 	}
 	return &File{&file{f: f, name: name}}, nil
+}
+
+func openDirNolog(name string) (*File, error) {
+	return openFileNolog(name, O_RDONLY, 0)
+}
+
+func (f *File) Fd() uintptr {
+	return ^(uintptr(0))
+}
+
+func (f *File) Chdir() error {
+	return syscall.ENOTSUP
 }
 
 func (f *File) readdir(n int, mode readdirMode) (names []string, dirents []DirEntry, fi []FileInfo, err error) {
@@ -285,4 +299,22 @@ func (f *File) Truncate(size int64) (err error) {
 		}
 	}
 	return f.wrapErr("truncate", err)
+}
+
+func ignoringEINTR2[T any](fn func() (T, error)) (T, error) {
+	return fn()
+}
+
+func checkPathEscapes(r *Root, name string) error {
+	if r.root.closed.Load() {
+		return ErrClosed
+	}
+	if !filepathlite.IsLocal(name) {
+		return errPathEscapes
+	}
+	return nil
+}
+
+func checkPathEscapesLstat(r *Root, name string) error {
+	return checkPathEscapes(r, name)
 }

@@ -17,6 +17,8 @@ var (
 
 type Error struct{ s string }
 
+func NewError(s string) error { return &Error{s} }
+
 var (
 	ENOTSUP      = &Error{"operation not supported"}
 	EINVAL       = &Error{"invalid argument"}
