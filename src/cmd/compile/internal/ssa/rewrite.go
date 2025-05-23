@@ -1394,7 +1394,7 @@ func isInlinableMemmove(dst, src *Value, sz int64, c *Config) bool {
 		return sz <= 8
 	case "s390x", "ppc64", "ppc64le":
 		return sz <= 8 || disjoint(dst, sz, src, sz)
-	case "arm", "loong64", "mips", "mips64", "mipsle", "mips64le":
+	case "arm", "loong64", "mips", "mips64", "mipsle", "mips64le", "thumb":
 		return sz <= 4
 	}
 	return false
@@ -2268,7 +2268,7 @@ func canRotate(c *Config, bits int64) bool {
 	switch c.arch {
 	case "386", "amd64", "arm64", "loong64", "riscv64":
 		return true
-	case "arm", "s390x", "ppc64", "ppc64le", "wasm":
+	case "arm", "s390x", "ppc64", "ppc64le", "wasm", "thumb":
 		return bits >= 32
 	default:
 		return false

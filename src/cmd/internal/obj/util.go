@@ -340,7 +340,7 @@ func writeDconv(w io.Writer, p *Prog, a *Addr, abiDetail bool) {
 		v := int(a.Offset)
 		ops := "<<>>->@>"
 		switch buildcfg.GOARCH {
-		case "arm":
+		case "arm", "thumb":
 			op := ops[((v>>5)&3)<<1:]
 			if v&(1<<4) != 0 {
 				fmt.Fprintf(w, "R%d%c%cR%d", v&15, op[0], op[1], (v>>8)&15)
@@ -520,6 +520,7 @@ const (
 	RBaseRISCV   = 15 * 1024 // range [15k, 16k)
 	RBaseWasm    = 16 * 1024
 	RBaseLOONG64 = 19 * 1024 // range [19K, 22k)
+	RBaseThumb   = 22 * 1024
 )
 
 // RegisterRegister binds a pretty-printer (Rconv) for register

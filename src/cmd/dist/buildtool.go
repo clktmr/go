@@ -117,6 +117,9 @@ var ignoreSuffixes = []string{
 	// with PGO. And as it is not a text file the import path
 	// rewrite will break it.
 	".pgo",
+	// GOARCH=thumb isn't supported by original compiler
+	"_thumb.s",
+	"_thumb.go",
 	// Skip editor backup files.
 	"~",
 }

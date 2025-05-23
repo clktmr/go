@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build faketime && !windows
+//go:build faketime && !windows && !noos
 
 // Faketime isn't currently supported on Windows. This would require
 // modifying syscall.Write to call syscall.faketimeWrite,
@@ -97,3 +97,6 @@ func write(fd uintptr, p unsafe.Pointer, n int32) int32 {
 	unlock(&faketimeState.lock)
 	return res
 }
+
+// nanosleep added by noos
+func nanosleep(ns int64) { usleep(uint32(ns / 1000)) }

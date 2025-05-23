@@ -540,7 +540,7 @@ func IsPrint(r rune) bool {
 	// If we find x in a range, make sure x is not in isNotPrint list.
 
 	if 0 <= r && r < 1<<16 {
-		rr, isPrint, isNotPrint := uint16(r), isPrint16, isNotPrint16
+		rr, isPrint, isNotPrint := uint16(r), isPrint16[:], isNotPrint16[:]
 		i, _ := bsearch(isPrint, rr)
 		if i >= len(isPrint) || rr < isPrint[i&^1] || isPrint[i|1] < rr {
 			return false
@@ -549,7 +549,7 @@ func IsPrint(r rune) bool {
 		return !found
 	}
 
-	rr, isPrint, isNotPrint := uint32(r), isPrint32, isNotPrint32
+	rr, isPrint, isNotPrint := uint32(r), isPrint32[:], isNotPrint32[:]
 	i, _ := bsearch(isPrint, rr)
 	if i >= len(isPrint) || rr < isPrint[i&^1] || isPrint[i|1] < rr {
 		return false
@@ -580,6 +580,6 @@ func isInGraphicList(r rune) bool {
 	if r > 0xFFFF {
 		return false
 	}
-	_, found := bsearch(isGraphic, uint16(r))
+	_, found := bsearch(isGraphic[:], uint16(r))
 	return found
 }

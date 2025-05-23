@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !faketime
+//go:build !faketime && !noos
 
 package runtime
 
@@ -56,3 +56,6 @@ func write(fd uintptr, p unsafe.Pointer, n int32) int32 {
 	}
 	return write1(fd, p, n)
 }
+
+// nanosleep added by noos
+func nanosleep(ns int64) { usleep(uint32(ns / 1000)) }

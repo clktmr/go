@@ -475,7 +475,7 @@ var SumdbDir = gopathDir("pkg/sumdb")
 // GetArchEnv returns empty key and value.
 func GetArchEnv() (key, val string, changed bool) {
 	switch Goarch {
-	case "arm":
+	case "arm", "thumb":
 		return "GOARM", GOARM, goARMChanged
 	case "arm64":
 		return "GOARM64", GOARM64, goARM64Changed

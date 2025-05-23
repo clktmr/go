@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build !noos
+
 // Go execution tracer.
 // The tracer captures a wide range of execution events like goroutine
 // creation/blocking/unblocking, syscall enter/exit/block, GC-related events,

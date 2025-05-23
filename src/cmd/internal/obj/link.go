@@ -445,6 +445,7 @@ const (
 	ABaseLoong64
 	ABaseRISCV
 	ABaseS390X
+	ABaseThumb
 	ABaseWasm
 
 	AllowedOpCodes = 1 << 11            // The number of opcodes available for any given architecture.
@@ -942,6 +943,9 @@ const (
 	// Linkname indicates this is a go:linkname'd symbol.
 	AttrLinkname
 
+	// Generate an interrupt entry/exit prologue/epilogue.
+	AttrISR
+
 	// attrABIBase is the value at which the ABI is encoded in
 	// Attribute. This must be last; all bits after this are
 	// assumed to be an ABI value.
@@ -972,6 +976,7 @@ func (a *Attribute) ABIWrapper() bool         { return a.load()&AttrABIWrapper !
 func (a *Attribute) IsPcdata() bool           { return a.load()&AttrPcdata != 0 }
 func (a *Attribute) IsPkgInit() bool          { return a.load()&AttrPkgInit != 0 }
 func (a *Attribute) IsLinkname() bool         { return a.load()&AttrLinkname != 0 }
+func (a *Attribute) ISR() bool                { return a.load()&AttrISR != 0 }
 
 func (a *Attribute) Set(flag Attribute, value bool) {
 	for {

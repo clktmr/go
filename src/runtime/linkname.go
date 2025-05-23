@@ -9,17 +9,6 @@ import _ "unsafe"
 // used in internal/godebug and syscall
 //go:linkname write
 
-// used by cgo
-//go:linkname _cgo_panic_internal
-//go:linkname cgoAlwaysFalse
-//go:linkname cgoUse
-//go:linkname cgoKeepAlive
-//go:linkname cgoCheckPointer
-//go:linkname cgoCheckResult
-//go:linkname cgoNoCallback
-//go:linkname gobytes
-//go:linkname gostringn
-
 // used in plugin
 //go:linkname doInit
 

@@ -32,8 +32,9 @@ type File struct {
 }
 
 type Entry struct {
-	name string
-	raw  rawFile
+	name   string
+	raw    rawFile
+	gofile bool
 }
 
 // A Sym is a symbol defined in an executable file.
@@ -176,6 +177,10 @@ func (e *Entry) LoadAddress() (uint64, error) {
 // This is for cmd/pprof to locate cgo functions.
 func (e *Entry) DWARF() (*dwarf.Data, error) {
 	return e.raw.dwarf()
+}
+
+func (e *Entry) IsGoFile() bool {
+	return e.gofile
 }
 
 type Liner interface {

@@ -7201,7 +7201,7 @@ func (s *State) Call(v *ssa.Value) *obj.Prog {
 		switch Arch.LinkArch.Family {
 		case sys.AMD64, sys.I386, sys.PPC64, sys.RISCV64, sys.S390X, sys.Wasm:
 			p.To.Type = obj.TYPE_REG
-		case sys.ARM, sys.ARM64, sys.Loong64, sys.MIPS, sys.MIPS64:
+		case sys.ARM, sys.ARM64, sys.Loong64, sys.MIPS, sys.MIPS64, sys.Thumb:
 			p.To.Type = obj.TYPE_MEM
 		default:
 			base.Fatalf("unknown indirect call family")

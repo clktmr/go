@@ -337,11 +337,14 @@ func (p *noder) pragma(pos syntax.Pos, blankLine bool, text string, old syntax.P
 		}
 		flag := pragmaFlag(verb)
 		const runtimePragmas = ir.Systemstack | ir.Nowritebarrier | ir.Nowritebarrierrec | ir.Yeswritebarrierrec
-		if !base.Flag.CompilingRuntime && flag&runtimePragmas != 0 {
+		if base.Ctxt.Headtype != objabi.Hnoos && !base.Flag.CompilingRuntime && flag&runtimePragmas != 0 {
 			p.error(syntax.Error{Pos: pos, Msg: fmt.Sprintf("//%s only allowed in runtime", verb)})
 		}
 		if flag == ir.UintptrKeepAlive && !base.Flag.Std {
 			p.error(syntax.Error{Pos: pos, Msg: fmt.Sprintf("//%s is only allowed in the standard library", verb)})
+		}
+		if flag == ir.Interrupthandler {
+			flag |= ir.Nosplit | ir.Nowritebarrierrec | ir.Nowritebarrier
 		}
 		if flag == 0 && !allowedStdPragmas[verb] && base.Flag.Std {
 			p.error(syntax.Error{Pos: pos, Msg: fmt.Sprintf("//%s is not allowed in the standard library", verb)})

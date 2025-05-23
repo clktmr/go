@@ -69,6 +69,28 @@ var depsRules = `
 	internal/goarch < internal/abi;
 	internal/byteorder, internal/goarch < internal/chacha8rand;
 
+	# MMIO used by noos runtime
+	unsafe
+	< embedded/mmio
+	< embedded/arch/cortexm/mpu,
+	  embedded/arch/cortexm/mpu/mpu7,
+	  embedded/arch/cortexm/mpu/mpu8,
+	  internal/cpu/armm,
+	  internal/cpu/armm/acc,
+	  internal/cpu/armm/bitband,
+	  internal/cpu/armm/cmt,
+	  internal/cpu/armm/debug/itm,
+	  internal/cpu/armm/fpu,
+	  internal/cpu/armm/nvic,
+	  internal/cpu/armm/pft,
+	  internal/cpu/armm/scb,
+	  internal/cpu/armm/scid,
+	  internal/cpu/armm/systick,
+	  internal/cpu/riscv/clint,
+	  internal/cpu/riscv/plic,
+	  internal/cpu/r4000/creg
+	< MMIO;
+
 	# RUNTIME is the core runtime group of packages, all of them very light-weight.
 	internal/abi,
 	internal/chacha8rand,
@@ -80,7 +102,7 @@ var depsRules = `
 	internal/goos,
 	internal/profilerecord,
 	math/bits,
-	structs
+	structs, MMIO
 	< internal/bytealg
 	< internal/stringslite
 	< internal/itoa
@@ -187,7 +209,7 @@ var depsRules = `
 	# OS does not include reflection.
 	io/fs
 	< internal/testlog
-	< internal/poll
+	< internal/poll, embedded/rtos
 	< internal/filepathlite
 	< os
 	< os/signal;
@@ -664,6 +686,22 @@ var depsRules = `
 	internal/godebug, math/rand, encoding/hex
 	< internal/fuzz;
 
+	embedded/rtos, internal/cpu/armm/scb, internal/cpu/armm/systick
+	< embedded/arch/cortexm/systim;
+
+	embedded/rtos, internal/cpu/riscv/clint
+	< embedded/arch/riscv/systim;
+
+	embedded/rtos, internal/cpu/r4000/creg
+	< embedded/arch/r4000/systim;
+
+	FMT
+	< github.com/embeddedgo/fs/semihostfs;
+
+	FMT, embedded/arch/cortexm/systim, embedded/arch/riscv/systim,
+	github.com/embeddedgo/fs/semihostfs
+	< github.com/embeddedgo/noostest/init;
+
 	OS, flag, testing, internal/cfg, internal/platform, internal/goroot
 	< internal/testenv;
 
@@ -759,7 +797,8 @@ var depsRules = `
 	< internal/coverage/cfile
 	< runtime/coverage;
 
-	internal/coverage/cfile, internal/fuzz, internal/testlog, runtime/pprof, regexp
+	internal/coverage/cfile, internal/fuzz, internal/testlog, runtime/pprof, regexp,
+	github.com/embeddedgo/noostest/init
 	< testing/internal/testdeps;
 
 	# Test-only packages can have anything they want
@@ -837,7 +876,7 @@ var buildIgnore = []byte("\n//go:build ignore")
 
 func findImports(pkg string) ([]string, error) {
 	vpkg := pkg
-	if strings.HasPrefix(pkg, "golang.org") {
+	if strings.HasPrefix(pkg, "golang.org") || strings.HasPrefix(pkg, "github.com") {
 		vpkg = "vendor/" + pkg
 	}
 	dir := filepath.Join(Default.GOROOT, "src", vpkg)

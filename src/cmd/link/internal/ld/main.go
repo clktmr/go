@@ -52,6 +52,10 @@ var (
 	pkglistfornote []byte
 	windowsgui     bool // writes a "GUI binary" instead of a "console binary"
 	ownTmpDir      bool // set to true if tmp dir created by linker (e.g. no -tmpdir)
+	RAM            MemBlock
+	NoDMA          MemBlock
+	MinTextAddr    int64
+	MaxTextAddr    int64 = -1
 )
 
 func init() {
@@ -105,7 +109,7 @@ var (
 	FlagStrictDups    = flag.Int("strictdups", 0, "sanity check duplicate symbol contents during object file reading (1=warn 2=err).")
 	FlagRound         = flag.Int64("R", -1, "set address rounding `quantum`")
 	FlagTextAddr      = flag.Int64("T", -1, "set the start address of text symbols")
-	flagEntrySymbol   = flag.String("E", "", "set `entry` symbol name")
+	FlagEntrySymbol   = flag.String("E", "", "set `entry` symbol name")
 	flagPruneWeakMap  = flag.Bool("pruneweakmap", true, "prune weak mapinit refs")
 	flagRandLayout    = flag.Int64("randlayout", 0, "randomize function layout")
 	cpuprofile        = flag.String("cpuprofile", "", "write cpu profile to `file`")
@@ -116,7 +120,53 @@ var (
 
 	flagW ternaryFlag
 	FlagW = new(bool) // the -w flag, computed in main from flagW
+
+	stripFuncNames = flag.Int("stripfn", 0, "strip function names in pclntab, 1: remove package path, 2: blank names")
 )
+
+type MemBlock struct {
+	Base, Size, Offset int64
+}
+
+func (mb *MemBlock) set(descr string) {
+	v := [3]int64{0, 0, -1}
+
+	a := strings.SplitN(descr, ":", len(v)+1)
+	if len(a) > len(v) || len(a) == 0 {
+		Exitf(`memory block: "%s" doesn't match BASE:SIZE[:OFFSET] format`, descr)
+	}
+	for i, s := range a {
+		scale := int64(1)
+		if i != 0 {
+			switch s[len(s)-1] {
+			case 'K':
+				scale = 1024
+			case 'M':
+				scale = 1024 * 1024
+			case 'G':
+				scale = 1024 * 1024 * 1024
+			}
+			if scale != 1 {
+				s = s[:len(s)-1]
+			}
+		}
+		var err error
+		v[i], err = strconv.ParseInt(s, 0, 64)
+		if err != nil {
+			Exitf("memory block: bad BASE/SIZE/OFFSET %s: %v", s, err)
+		}
+		if i != 0 && v[i] < 0 {
+			Exitf("memory block: negative SIZE/OFFSET %s", s)
+		}
+		v[i] *= scale
+	}
+	mb.Base = v[0]
+	mb.Size = v[1]
+	mb.Offset = v[2]
+	if mb.Offset > mb.Size {
+		Exitf(`memory block: "%s OFFSET" > SIZE`, descr)
+	}
+}
 
 // ternaryFlag is like a boolean flag, but has a default value that is
 // neither true nor false, allowing it to be set from context (e.g. from another
@@ -204,8 +254,41 @@ func Main(arch *sys.Arch, theArch Arch) {
 	objabi.Flagcount("v", "print link trace", &ctxt.Debugvlog)
 	objabi.Flagfn1("importcfg", "read import configuration from `file`", ctxt.readImportCfg)
 
+	var flagMemory, flagFlash string
+	if buildcfg.GOOS == "noos" {
+		flag.StringVar(&flagMemory, "M", "", "set memory layout: ADDR1:SIZE1[:OFFSET1][,ADDR2:SIZE2]")
+		flag.StringVar(&flagFlash, "F", "", "set text memory (ROM/Flash) address and size: ADDR:SIZE")
+	}
+
 	objabi.Flagparse(usage)
 	counter.CountFlags("link/flag:", *flag.CommandLine)
+
+	if buildcfg.GOOS == "noos" {
+		descr := strings.Split(flagMemory, ",")
+		if len(descr) == 0 {
+			Exitf("memory layout (-M) not specified")
+		}
+		if len(descr) > 0 {
+			RAM.set(descr[0])
+		}
+		if len(descr) > 1 {
+			NoDMA.set(descr[1])
+		}
+		if len(descr) > 2 {
+			Exitf("-M describes more than two memory blocks")
+		}
+		if len(flagFlash) > 0 {
+			var flash MemBlock
+			flash.set(flagFlash)
+			MinTextAddr = flash.Base
+			MaxTextAddr = flash.Base + flash.Size
+			if *FlagTextAddr == -1 {
+				*FlagTextAddr = flash.Base
+			} else if *FlagTextAddr < flash.Base || MaxTextAddr <= *FlagTextAddr {
+				Exitf("-T address outside the area specified by -F")
+			}
+		}
+	}
 
 	if ctxt.Debugvlog > 0 {
 		// dump symbol info on crash

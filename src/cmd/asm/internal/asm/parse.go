@@ -217,7 +217,7 @@ next:
 		for {
 			tok = p.nextToken()
 			if len(operands) == 0 && len(items) == 0 {
-				if p.arch.InFamily(sys.ARM, sys.ARM64, sys.AMD64, sys.I386, sys.Loong64, sys.RISCV64) && tok == '.' {
+				if p.arch.InFamily(sys.ARM, sys.ARM64, sys.AMD64, sys.I386, sys.Loong64, sys.RISCV64, sys.Thumb) && tok == '.' {
 					// Suffixes: ARM conditionals, Loong64 vector instructions, RISCV rounding mode or x86 modifiers.
 					tok = p.nextToken()
 					str := p.lex.Text()
@@ -552,7 +552,7 @@ func (p *Parser) atStartOfRegister(name string) bool {
 // We have consumed the register or R prefix.
 func (p *Parser) atRegisterShift() bool {
 	// ARM only.
-	if !p.arch.InFamily(sys.ARM, sys.ARM64) {
+	if !p.arch.InFamily(sys.ARM, sys.Thumb, sys.ARM64) {
 		return false
 	}
 	// R1<<...
@@ -622,7 +622,7 @@ func (p *Parser) register(name string, prefix rune) (r1, r2 int16, scale int8, o
 		// Check the architectures match the syntax.
 		switch p.next().ScanToken {
 		case ',':
-			if !p.arch.InFamily(sys.ARM, sys.ARM64) {
+			if !p.arch.InFamily(sys.ARM, sys.Thumb, sys.ARM64) {
 				p.errorf("(register,register) not supported on this architecture")
 				return
 			}
@@ -983,7 +983,7 @@ func (p *Parser) registerIndirect(a *obj.Addr, prefix rune) {
 	a.Reg = r1
 	if r2 != 0 {
 		// TODO: Consistency in the encoding would be nice here.
-		if p.arch.InFamily(sys.ARM, sys.ARM64) {
+		if p.arch.InFamily(sys.ARM, sys.Thumb, sys.ARM64) {
 			// Special form
 			// ARM: destination register pair (R1, R2).
 			// ARM64: register pair (R1, R2) for LDP/STP.
@@ -1089,7 +1089,7 @@ func (p *Parser) registerListARM(a *obj.Addr) {
 	var bits uint16
 	var arrangement int64
 	switch p.arch.Family {
-	case sys.ARM:
+	case sys.ARM, sys.Thumb:
 		maxReg = 16
 	case sys.ARM64:
 		maxReg = 32
@@ -1137,7 +1137,7 @@ ListLoop:
 			}
 			regCnt++
 			nextReg = (nextReg + 1) % 32
-		case sys.ARM:
+		case sys.ARM, sys.Thumb:
 			// Parse the upper and lower bounds.
 			lo := p.registerNumber(tok.String())
 			hi := lo
@@ -1165,7 +1165,7 @@ ListLoop:
 	}
 	a.Type = obj.TYPE_REGLIST
 	switch p.arch.Family {
-	case sys.ARM:
+	case sys.ARM, sys.Thumb:
 		a.Offset = int64(bits)
 	case sys.ARM64:
 		offset, err := arch.ARM64RegisterListOffset(firstReg, regCnt, arrangement)
@@ -1213,7 +1213,7 @@ func (p *Parser) registerListX86(a *obj.Addr) {
 
 // registerNumber is ARM-specific. It returns the number of the specified register.
 func (p *Parser) registerNumber(name string) uint16 {
-	if p.arch.Family == sys.ARM && name == "g" {
+	if (p.arch.Family == sys.ARM || p.arch.Family == sys.Thumb) && name == "g" {
 		return 10
 	}
 	if name[0] != 'R' {

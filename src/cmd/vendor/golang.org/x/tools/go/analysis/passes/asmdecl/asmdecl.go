@@ -97,6 +97,7 @@ var (
 	asmArchPpc64LE  = asmArch{name: "ppc64le", bigEndian: false, stack: "R1", lr: true, retRegs: []string{"R3", "F1"}, writeResult: []string{"SYSCALL"}}
 	asmArchRISCV64  = asmArch{name: "riscv64", bigEndian: false, stack: "SP", lr: true, retRegs: []string{"X10", "F10"}, writeResult: []string{"ECALL"}}
 	asmArchS390X    = asmArch{name: "s390x", bigEndian: true, stack: "R15", lr: true}
+	asmArchThumb    = asmArch{name: "thumb", bigEndian: false, stack: "R13", lr: true}
 	asmArchWasm     = asmArch{name: "wasm", bigEndian: false, stack: "SP", lr: false}
 	asmArchLoong64  = asmArch{name: "loong64", bigEndian: false, stack: "R3", lr: true, retRegs: []string{"R4", "F0"}, writeResult: []string{"SYSCALL"}}
 
@@ -113,6 +114,7 @@ var (
 		&asmArchPpc64LE,
 		&asmArchRISCV64,
 		&asmArchS390X,
+		&asmArchThumb,
 		&asmArchWasm,
 		&asmArchLoong64,
 	}
