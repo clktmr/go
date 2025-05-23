@@ -29,6 +29,8 @@ const (
 )
 
 type mOS struct {
+	waitsema uint32 // semaphore for parking on locks
+
 	// thread context
 	gprs                 [numGPRS]uintptr
 	fprs                 [numFPRS]float64
