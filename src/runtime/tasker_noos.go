@@ -320,6 +320,7 @@ func curcpuRunScheduler() {
 	}
 }
 
+//go:linkname rtos_notewakeup
 //go:nowritebarrierrec
 //go:nosplit
 func rtos_notewakeup(n *notel) {

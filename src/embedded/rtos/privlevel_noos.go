@@ -7,7 +7,7 @@ package rtos
 import _ "unsafe"
 
 func setPrivLevel(newlevel int) (oldlevel int, err error) {
-	oldlevel, errno := runtime_setprivlevel(newlevel)
+	oldlevel, errno := setprivlevel(newlevel)
 	return oldlevel, errnoError(errno)
 }
 
